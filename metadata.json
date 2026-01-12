@@ -1,0 +1,5 @@
+{
+  "name": "RealtyOS Foundation",
+  "description": "A cloud-based internal platform for real estate management. This initial version visualizes the system architecture, data models, and foundational plans for the platform.",
+  "requestFramePermissions": []
+}
