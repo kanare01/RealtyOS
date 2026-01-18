@@ -29,9 +29,14 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             const data = await response.json();
 
             if (response.ok) {
-                // Save token and user info
+                // 1. Save Credentials
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
+                
+                // 2. Force Hash Update for Router
+                window.location.hash = 'Dashboard';
+                
+                // 3. Trigger App State Update
                 onLogin();
             } else {
                 setError(data.error || 'Login failed. Please check your credentials.');

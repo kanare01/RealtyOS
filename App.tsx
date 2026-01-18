@@ -227,8 +227,10 @@ const App: React.FC = () => {
             // Decode URI component to handle spaces (e.g. 'Audit%20Trail')
             const decodedView = decodeURIComponent(hash) as View;
             setCurrentViewState(decodedView);
-        } else {
+        } else if (isAuthenticated) {
+            // Default to Dashboard if authenticated but no hash
             setCurrentViewState('Dashboard');
+            window.location.hash = 'Dashboard';
         }
     };
 
@@ -238,7 +240,7 @@ const App: React.FC = () => {
     // Listen for back/forward navigation
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+  }, [isAuthenticated]);
 
   // Sync state changes to URL hash
   const setCurrentView = (view: View) => {

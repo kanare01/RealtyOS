@@ -209,7 +209,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     // --- Helper: Auth Fetch with Retry & Error Handling ---
-    const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 2, backoff = 300) => {
+    const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 1, backoff = 300) => {
         const token = localStorage.getItem('token');
         const headers = {
             'Content-Type': 'application/json',
@@ -228,8 +228,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // 403 Forbidden
             if (response.status === 403) {
-                // Silently fail for bulk fetching to prevent notification spam
-                // Explicit actions will catch this in their own try/catch blocks usually or via the non-GET check below
                 return null;
             }
 
@@ -257,9 +255,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 return fetchWithRetry(url, options, retries - 1, backoff * 2);
             }
             console.error(`Fetch error for ${url}:`, error);
-            if (options.method !== 'GET') {
-                addNotification('Network error. Please check your connection.', 'error');
-            }
             return null;
         }
     };
@@ -267,9 +262,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // --- Data Loading Logic ---
     const loadData = async (userRole: string) => {
         try {
-            // NOTE: Automatic processing of recurring expenses removed.
-            // This is now handled by the backend scheduler or manual trigger in System Status.
-
             // Common Endpoints for all users
             const commonRequests = [
                 fetchWithRetry(`${API_BASE_URL}/properties`),
@@ -327,7 +319,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         } catch (error) {
             console.error("Failed to fetch data from backend", error);
-            addNotification("Failed to load application data. Retrying...", "warning");
+            // Don't show confusing error toast on initial load failures, just log it
+            // addNotification("Failed to load application data. Retrying...", "warning");
+        } finally {
+            // Force stop loading even if requests fail
+            setIsLoading(false);
         }
     };
 
@@ -344,9 +340,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     // Try local first for immediate UI
                     const storedUser = localStorage.getItem('user');
                     if(storedUser) {
-                        const u = JSON.parse(storedUser);
-                        setCurrentUser(u);
-                        role = u.role;
+                        try {
+                            const u = JSON.parse(storedUser);
+                            setCurrentUser(u);
+                            role = u.role;
+                        } catch(e) {
+                            console.error("Malformed user data in local storage");
+                        }
                     }
 
                     // Refresh profile from API to ensure valid token & role
@@ -363,15 +363,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         // 2. Fetch Data based on confirmed Role
                         await loadData(role);
                     } else if (meRes.status === 401) {
-                        // Token expired
+                        // Token expired or invalid
+                        console.warn("Session expired or invalid token.");
                         localStorage.removeItem('token');
                         localStorage.removeItem('user');
-                        window.location.reload();
-                        return; 
+                        setCurrentUser(null);
+                        // Do not reload page here to avoid infinite loops. App component will handle redirect to Login.
                     }
                 } catch (e) {
-                    console.error("Auth init error", e);
-                    // Fallback to what we have or try loading data anyway if we have a role
+                    console.error("Auth init connection error", e);
+                    // Fallback: If network error but we have local user, try loading data
                     if (role) await loadData(role);
                 }
             }
@@ -379,6 +380,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
 
         init();
+        
+        // Failsafe: Ensure loading state is turned off after 10 seconds max
+        const failsafe = setTimeout(() => setIsLoading(false), 10000);
+        return () => clearTimeout(failsafe);
     }, []);
 
     // Exposed refresh function
