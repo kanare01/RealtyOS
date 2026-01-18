@@ -215,7 +215,38 @@ const AppLayout: React.FC<AppLayoutProps> = ({ currentView, setCurrentView, onLo
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentView, setCurrentView] = useState<View>('Dashboard');
+  const [currentView, setCurrentViewState] = useState<View>('Dashboard');
+
+  // --- 1. History Integration ---
+  
+  // Initialize view from URL hash on load
+  useEffect(() => {
+    const handleHashChange = () => {
+        const hash = window.location.hash.substring(1); // Remove '#'
+        if (hash) {
+            // Decode URI component to handle spaces (e.g. 'Audit%20Trail')
+            const decodedView = decodeURIComponent(hash) as View;
+            setCurrentViewState(decodedView);
+        } else {
+            setCurrentViewState('Dashboard');
+        }
+    };
+
+    // Set initial view
+    handleHashChange();
+
+    // Listen for back/forward navigation
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Sync state changes to URL hash
+  const setCurrentView = (view: View) => {
+    setCurrentViewState(view);
+    window.location.hash = view;
+  };
+
+  // --- 2. Auth State ---
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -226,6 +257,7 @@ const App: React.FC = () => {
 
   const handleLogin = () => {
     setIsAuthenticated(true);
+    setCurrentView('Dashboard');
   };
 
   const handleLogout = () => {
@@ -234,6 +266,7 @@ const App: React.FC = () => {
         localStorage.removeItem('user');
         setIsAuthenticated(false);
         setCurrentView('Dashboard'); 
+        window.location.hash = '';
     }
   };
 

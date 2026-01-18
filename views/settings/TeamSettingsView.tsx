@@ -31,7 +31,7 @@ const CollapsibleCard: React.FC<{ title: string; children: React.ReactNode; defa
 };
 
 const TeamSettingsView: React.FC<TeamSettingsViewProps> = ({ setCurrentView }) => {
-    const { teamMembers, addTeamMember, updateTeamMember, deleteTeamMember } = useData();
+    const { teamMembers, addTeamMember, updateTeamMember, deleteTeamMember, addNotification } = useData();
     const [showModal, setShowModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [currentMember, setCurrentMember] = useState<TeamMember>({ id: 0, name: '', phone: '', username: '', email: '', role: 'Agent' });
@@ -71,9 +71,23 @@ const TeamSettingsView: React.FC<TeamSettingsViewProps> = ({ setCurrentView }) =
     };
 
     const handleSave = () => {
+        // Validation
         if (!currentMember.name || !currentMember.email || !currentMember.username) {
-            alert("Please fill in required fields (Name, Email, Username).");
+            addNotification("Please fill in required fields (Name, Email, Username).", "error");
             return;
+        }
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(currentMember.email)) {
+            addNotification("Please enter a valid email address.", "error");
+            return;
+        }
+
+        if (!isEditing) {
+            if (!currentMember.password || currentMember.password.length < 8) {
+                addNotification("Password must be at least 8 characters long.", "error");
+                return;
+            }
         }
 
         if (isEditing) {
@@ -100,7 +114,7 @@ const TeamSettingsView: React.FC<TeamSettingsViewProps> = ({ setCurrentView }) =
                         </div>
                         <div className="p-6 space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
                                 <input 
                                     type="text" 
                                     className="w-full border-gray-300 rounded-md shadow-sm focus:ring-[#1a237e] focus:border-[#1a237e] text-sm p-2 bg-white border"
@@ -110,7 +124,7 @@ const TeamSettingsView: React.FC<TeamSettingsViewProps> = ({ setCurrentView }) =
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
                                 <input 
                                     type="email" 
                                     className="w-full border-gray-300 rounded-md shadow-sm focus:ring-[#1a237e] focus:border-[#1a237e] text-sm p-2 bg-white border"
@@ -120,7 +134,7 @@ const TeamSettingsView: React.FC<TeamSettingsViewProps> = ({ setCurrentView }) =
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Username *</label>
                                 <input 
                                     type="text" 
                                     className="w-full border-gray-300 rounded-md shadow-sm focus:ring-[#1a237e] focus:border-[#1a237e] text-sm p-2 bg-white border"
@@ -154,13 +168,13 @@ const TeamSettingsView: React.FC<TeamSettingsViewProps> = ({ setCurrentView }) =
                             </div>
                             {!isEditing && (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
                                     <input 
                                         type="password" 
                                         className="w-full border-gray-300 rounded-md shadow-sm focus:ring-[#1a237e] focus:border-[#1a237e] text-sm p-2 bg-white border"
                                         value={currentMember.password}
                                         onChange={e => setCurrentMember({...currentMember, password: e.target.value})}
-                                        placeholder="Set initial password"
+                                        placeholder="Min 8 chars"
                                     />
                                 </div>
                             )}

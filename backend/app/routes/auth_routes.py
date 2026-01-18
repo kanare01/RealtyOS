@@ -5,15 +5,25 @@ from app.models import TeamMember
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from datetime import timedelta
 from app.utils import log_system_action
+import re
 
 auth_bp = Blueprint('auth', __name__)
 
+def validate_email(email):
+    return re.match(r"[^@]+@[^@]+\.[^@]+", email)
+
+def validate_password(password):
+    return len(password) >= 8
+
 @auth_bp.route('/login', methods=['POST'])
-@limiter.limit("5 per minute")
+@limiter.limit("10 per minute")
 def login():
     data = request.json
     email = data.get('email')
     password = data.get('password')
+
+    if not email or not password:
+        return jsonify({"error": "Email and password are required"}), 400
 
     user = TeamMember.query.filter_by(email=email).first()
 
@@ -41,6 +51,13 @@ def login():
 def register():
     # Only for initial setup or admin use
     data = request.json
+    
+    if not data.get('email') or not validate_email(data['email']):
+        return jsonify({"error": "Invalid email address"}), 400
+        
+    if not data.get('password') or not validate_password(data['password']):
+        return jsonify({"error": "Password must be at least 8 characters"}), 400
+
     if TeamMember.query.filter_by(email=data['email']).first():
         return jsonify({"error": "Email already exists"}), 400
 
@@ -87,11 +104,16 @@ def update_current_profile():
         
     data = request.json
     
+    if 'email' in data:
+        if not validate_email(data['email']):
+            return jsonify({"error": "Invalid email address"}), 400
+        # Check uniqueness if email changed
+        if data['email'] != user.email and TeamMember.query.filter_by(email=data['email']).first():
+             return jsonify({"error": "Email already in use"}), 400
+        user.email = data['email']
+
     if 'name' in data: user.name = data['name']
-    # Note: Changing email might require re-verification in a stricter system
-    if 'email' in data: user.email = data['email']
     if 'phone' in data: user.phone = data['phone']
-    # Username update usually restricted, but allowing here
     if 'username' in data: user.username = data['username']
     
     db.session.commit()
@@ -117,6 +139,9 @@ def change_password():
     data = request.json
     current = data.get('current')
     new_pass = data.get('new')
+    
+    if not validate_password(new_pass):
+        return jsonify({"error": "New password must be at least 8 characters"}), 400
     
     if not user.check_password(current):
         return jsonify({"error": "Incorrect current password"}), 400

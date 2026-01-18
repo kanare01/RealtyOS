@@ -6,8 +6,14 @@ load_dotenv()
 
 class Config:
     # --- Security ---
-    # In production, these MUST be set in the environment
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-prod')
+    # In production, this raises an error if SECRET_KEY is missing or default
+    ENV = os.environ.get('FLASK_ENV', 'development')
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    
+    if ENV == 'production' and (not SECRET_KEY or SECRET_KEY == 'dev-secret-key-change-in-prod'):
+        raise ValueError("No SECRET_KEY set for production configuration")
+    
+    SECRET_KEY = SECRET_KEY or 'dev-secret-key-change-in-prod'
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', SECRET_KEY)
     
     # --- Database ---
@@ -24,8 +30,8 @@ class Config:
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,  # Handles disconnected connections gracefully
         "pool_recycle": 300,    # Recycle connections every 5 minutes
-        "pool_size": 10,        # Standard pool size
-        "max_overflow": 20,     # Allow spikes
+        "pool_size": 20,        # Increased pool size for prod
+        "max_overflow": 40,     # Allow spikes
     }
     
     # --- File Uploads ---

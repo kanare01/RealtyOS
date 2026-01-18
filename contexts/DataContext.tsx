@@ -267,8 +267,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // --- Data Loading Logic ---
     const loadData = async (userRole: string) => {
         try {
-            // Trigger background processing (fire and forget)
-            fetchWithRetry(`${API_BASE_URL}/recurring-expenses/process`, { method: 'POST' });
+            // NOTE: Automatic processing of recurring expenses removed.
+            // This is now handled by the backend scheduler or manual trigger in System Status.
 
             // Common Endpoints for all users
             const commonRequests = [
