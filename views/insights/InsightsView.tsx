@@ -2,8 +2,13 @@
 import React, { useState } from 'react';
 import TenantArrearsPanel from './TenantArrearsPanel';
 import OccupancyRatePanel from './OccupancyRatePanel';
+import { View } from '../../types';
 
-const InsightsView: React.FC = () => {
+interface InsightsViewProps {
+    setCurrentView: (view: View) => void;
+}
+
+const InsightsView: React.FC<InsightsViewProps> = ({ setCurrentView }) => {
     const [activeTab, setActiveTab] = useState<'Tenant Arrears' | 'Occupancy Rate'>('Tenant Arrears');
 
     return (
@@ -34,7 +39,11 @@ const InsightsView: React.FC = () => {
             </div>
 
             <div className="min-h-[500px]">
-                {activeTab === 'Tenant Arrears' ? <TenantArrearsPanel /> : <OccupancyRatePanel />}
+                {activeTab === 'Tenant Arrears' ? (
+                    <TenantArrearsPanel setCurrentView={setCurrentView} />
+                ) : (
+                    <OccupancyRatePanel setCurrentView={setCurrentView} />
+                )}
             </div>
         </div>
     );

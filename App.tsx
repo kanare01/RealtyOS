@@ -1,12 +1,19 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
+import NotificationContainer from './components/shared/NotificationContainer';
+import LoadingScreen from './components/shared/LoadingScreen';
 import { View } from './types';
-import { DataProvider } from './contexts/DataContext';
+import { DataProvider, useData } from './contexts/DataContext';
+
+// Auth
+import LoginView from './views/auth/LoginView';
 
 // Main view components
 import DashboardView from './views/dashboard/DashboardView';
 import InvoicingView from './views/invoicing/InvoicingView';
+import InvoiceFormView from './views/invoicing/InvoiceFormView';
 import TenantsView from './views/tenants/TenantsView';
 import PropertiesView from './views/properties/PropertiesView';
 import ReportsView from './views/reports/ReportsView';
@@ -14,11 +21,18 @@ import CommunicationsView from './views/communications/CommunicationsView';
 import SettingsView from './views/settings/SettingsView';
 import Placeholder from './components/shared/Placeholder';
 import PaymentsView from './views/payments/PaymentsView';
+import PaymentFormView from './views/payments/PaymentFormView';
+import BankStatementUploadView from './views/payments/BankStatementUploadView';
 import ExpensesView from './views/expenses/ExpensesView';
+import ExpenseFormView from './views/expenses/ExpenseFormView';
+import RecurringExpenseFormView from './views/expenses/RecurringExpenseFormView';
 import UnitsView from './views/units/UnitsView';
 import UtilitiesView from './views/utilities/UtilitiesView';
+import UtilityFormView from './views/utilities/UtilityFormView';
 import MaintenanceView from './views/maintenance/MaintenanceView';
+import MaintenanceFormView from './views/maintenance/MaintenanceFormView';
 import PropertyGroupingView from './views/propertyGrouping/PropertyGroupingView';
+import PropertyGroupingFormView from './views/propertyGrouping/PropertyGroupingFormView';
 import StatementsView from './views/reports/StatementsView';
 import InsightsView from './views/insights/InsightsView';
 import GettingStartedView from './views/dashboard/GettingStartedView';
@@ -36,127 +50,204 @@ import TeamSettingsView from './views/settings/TeamSettingsView';
 import BillingSettingsView from './views/settings/BillingSettingsView';
 import MpesaTransactionsSettingsView from './views/settings/MpesaTransactionsSettingsView';
 import AuditTrailSettingsView from './views/settings/AuditTrailSettingsView';
+import SystemStatusView from './views/settings/SystemStatusView';
+import FeedbackSettingsView from './views/settings/FeedbackSettingsView';
+import FoundationView from './views/foundation/FoundationView';
+
+interface AppLayoutProps {
+    currentView: View;
+    setCurrentView: (view: View) => void;
+    onLogout: () => void;
+}
+
+const AppLayout: React.FC<AppLayoutProps> = ({ currentView, setCurrentView, onLogout }) => {
+    const { isLoading } = useData();
+    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+    const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false);
+
+    if (isLoading) {
+        return <LoadingScreen />;
+    }
+
+    const toggleMobileSidebar = () => setIsMobileSidebarOpen(!isMobileSidebarOpen);
+    const closeMobileSidebar = () => setIsMobileSidebarOpen(false);
+    const toggleDesktopSidebar = () => setIsDesktopSidebarCollapsed(!isDesktopSidebarCollapsed);
+
+    const handleSetCurrentView = (view: View) => {
+        setCurrentView(view);
+        closeMobileSidebar();
+    };
+
+    const renderView = () => {
+        switch (currentView) {
+          case 'Dashboard':
+            return <DashboardView setCurrentView={handleSetCurrentView} />;
+          case 'Getting Started':
+            return <GettingStartedView setCurrentView={handleSetCurrentView} />;
+          case 'PropertyForm':
+            return <PropertyFormView setCurrentView={handleSetCurrentView} />;
+          case 'UnitForm':
+            return <UnitFormView setCurrentView={handleSetCurrentView} />;
+          case 'TenantForm':
+            return <TenantFormView setCurrentView={handleSetCurrentView} />;
+          case 'BulkTenantForm':
+            return <BulkTenantFormView setCurrentView={handleSetCurrentView} />;
+          case 'Invoices':
+            return <InvoicingView setCurrentView={handleSetCurrentView} />;
+          case 'InvoiceForm':
+            return <InvoiceFormView setCurrentView={handleSetCurrentView} />;
+          case 'Payments':
+            return <PaymentsView setCurrentView={handleSetCurrentView} />;
+          case 'PaymentForm':
+            return <PaymentFormView setCurrentView={handleSetCurrentView} />;
+          case 'BankStatementUpload':
+            return <BankStatementUploadView setCurrentView={handleSetCurrentView} />;
+          case 'Expenses':
+            return <ExpensesView setCurrentView={handleSetCurrentView} />;
+          case 'ExpenseForm':
+            return <ExpenseFormView setCurrentView={handleSetCurrentView} />;
+          case 'RecurringExpenseForm':
+            return <RecurringExpenseFormView setCurrentView={handleSetCurrentView} />;
+          case 'Tenants':
+            return <TenantsView setCurrentView={handleSetCurrentView} />;
+          case 'Properties':
+            return <PropertiesView setCurrentView={handleSetCurrentView} />;
+          case 'Units':
+            return <UnitsView setCurrentView={handleSetCurrentView} />;
+          case 'Utilities':
+            return <UtilitiesView setCurrentView={handleSetCurrentView} />;
+          case 'UtilityForm':
+            return <UtilityFormView setCurrentView={handleSetCurrentView} />;
+          case 'Maintenance':
+            return <MaintenanceView setCurrentView={handleSetCurrentView} />;
+          case 'MaintenanceForm':
+            return <MaintenanceFormView setCurrentView={handleSetCurrentView} />;
+          case 'Property Grouping':
+            return <PropertyGroupingView setCurrentView={handleSetCurrentView} />;
+          case 'PropertyGroupingForm':
+            return <PropertyGroupingFormView setCurrentView={handleSetCurrentView} />;
+          case 'Reports':
+            return <ReportsView />;
+          case 'Statements':
+            return <StatementsView />;
+          case 'Insights (beta)':
+            return <InsightsView setCurrentView={handleSetCurrentView} />;
+          case 'Communication':
+            return <CommunicationsView />;
+          case 'Settings':
+            return <SettingsView setCurrentView={handleSetCurrentView} />;
+          case 'General':
+            return <GeneralSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'Backup':
+            return <BackupSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'Alerts':
+            return <AlertsSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'Account Info':
+            return <AccountInfoSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'Documents (beta)':
+            return <DocumentsSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'Custom Message Template':
+            return <CustomMessageTemplateSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'Team':
+            return <TeamSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'Billing':
+            return <BillingSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'MPESA Transactions':
+            return <MpesaTransactionsSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'Audit Trail':
+            return <AuditTrailSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'User Feedback':
+            return <FeedbackSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'System Status':
+            return <SystemStatusView setCurrentView={handleSetCurrentView} />;
+          case 'Foundation':
+            return <FoundationView />;
+          case 'Financials':
+          case 'Property/Unit':
+            return <Placeholder title={currentView} />;
+          default:
+            return <Placeholder title="Unknown View" />;
+        }
+    };
+
+    return (
+        <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
+            {/* Global Notifications */}
+            <NotificationContainer />
+
+            {/* Mobile Overlay */}
+            {isMobileSidebarOpen && (
+              <div 
+                className="fixed inset-0 bg-black/50 z-20 md:hidden transition-opacity duration-300"
+                onClick={closeMobileSidebar}
+              ></div>
+            )}
+
+            {/* Sidebar Wrapper */}
+            <div className={`
+                fixed inset-y-0 left-0 z-30 transition-all duration-300 transform 
+                ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+                md:relative md:translate-x-0 
+                ${isDesktopSidebarCollapsed ? 'w-20' : 'w-64'}
+                flex-shrink-0
+            `}>
+               <Sidebar 
+                    currentView={currentView} 
+                    setCurrentView={handleSetCurrentView} 
+                    isCollapsed={isDesktopSidebarCollapsed}
+                    toggleCollapse={toggleDesktopSidebar}
+                />
+            </div>
+
+            <div className="flex-1 flex flex-col overflow-hidden w-full transition-all duration-300">
+              <Header 
+                currentView={currentView} 
+                onMenuClick={toggleMobileSidebar} 
+                onLogout={onLogout}
+              />
+              <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4 md:p-6 relative scroll-smooth">
+                {renderView()}
+              </main>
+            </div>
+        </div>
+    );
+};
 
 const App: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentView, setCurrentView] = useState<View>('Dashboard');
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false);
 
-  const toggleMobileSidebar = () => setIsMobileSidebarOpen(!isMobileSidebarOpen);
-  const closeMobileSidebar = () => setIsMobileSidebarOpen(false);
-  const toggleDesktopSidebar = () => setIsDesktopSidebarCollapsed(!isDesktopSidebarCollapsed);
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        setIsAuthenticated(true);
+    }
+  }, []);
 
-  // Helper to close sidebar on navigation on mobile
-  const handleSetCurrentView = (view: View) => {
-    setCurrentView(view);
-    closeMobileSidebar();
+  const handleLogin = () => {
+    setIsAuthenticated(true);
   };
 
-  const renderView = () => {
-    switch (currentView) {
-      case 'Dashboard':
-        return <DashboardView setCurrentView={handleSetCurrentView} />;
-      case 'Getting Started':
-        return <GettingStartedView setCurrentView={handleSetCurrentView} />;
-      case 'PropertyForm':
-        return <PropertyFormView setCurrentView={handleSetCurrentView} />;
-      case 'UnitForm':
-        return <UnitFormView setCurrentView={handleSetCurrentView} />;
-      case 'TenantForm':
-        return <TenantFormView setCurrentView={handleSetCurrentView} />;
-      case 'BulkTenantForm':
-        return <BulkTenantFormView setCurrentView={handleSetCurrentView} />;
-      case 'Invoices':
-        return <InvoicingView setCurrentView={handleSetCurrentView} />;
-      case 'Payments':
-        return <PaymentsView setCurrentView={handleSetCurrentView} />;
-      case 'Expenses':
-        return <ExpensesView setCurrentView={handleSetCurrentView} />;
-      case 'Tenants':
-        return <TenantsView setCurrentView={handleSetCurrentView} />;
-      case 'Properties':
-        return <PropertiesView setCurrentView={handleSetCurrentView} />;
-      case 'Units':
-        return <UnitsView setCurrentView={handleSetCurrentView} />;
-      case 'Utilities':
-        return <UtilitiesView setCurrentView={handleSetCurrentView} />;
-      case 'Maintenance':
-        return <MaintenanceView setCurrentView={handleSetCurrentView} />;
-      case 'Property Grouping':
-        return <PropertyGroupingView setCurrentView={handleSetCurrentView} />;
-      case 'Reports':
-        return <ReportsView />;
-      case 'Statements':
-        return <StatementsView />;
-      case 'Insights (beta)':
-        return <InsightsView />;
-      case 'Communication':
-        return <CommunicationsView />;
-      case 'Settings':
-        return <SettingsView />;
-      case 'General':
-        return <GeneralSettingsView setCurrentView={handleSetCurrentView} />;
-      case 'Backup':
-        return <BackupSettingsView setCurrentView={handleSetCurrentView} />;
-      case 'Alerts':
-        return <AlertsSettingsView setCurrentView={handleSetCurrentView} />;
-      case 'Account Info':
-        return <AccountInfoSettingsView setCurrentView={handleSetCurrentView} />;
-      case 'Documents (beta)':
-        return <DocumentsSettingsView setCurrentView={handleSetCurrentView} />;
-      case 'Custom Message Template':
-        return <CustomMessageTemplateSettingsView setCurrentView={handleSetCurrentView} />;
-      case 'Team':
-        return <TeamSettingsView setCurrentView={handleSetCurrentView} />;
-      case 'Billing':
-        return <BillingSettingsView setCurrentView={handleSetCurrentView} />;
-      case 'MPESA Transactions':
-        return <MpesaTransactionsSettingsView setCurrentView={handleSetCurrentView} />;
-      case 'Audit Trail':
-        return <AuditTrailSettingsView setCurrentView={handleSetCurrentView} />;
-      case 'Financials':
-      case 'Property/Unit':
-      case 'Foundation':
-        return <Placeholder title={currentView} />;
-      default:
-        return <Placeholder title="Unknown View" />;
+  const handleLogout = () => {
+    if (confirm("Are you sure you want to logout?")) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setIsAuthenticated(false);
+        setCurrentView('Dashboard'); 
     }
   };
 
+  if (!isAuthenticated) {
+    return <LoginView onLogin={handleLogin} />;
+  }
+
   return (
     <DataProvider>
-      <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
-        {/* Mobile Overlay */}
-        {isMobileSidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black/50 z-20 md:hidden transition-opacity duration-300"
-            onClick={closeMobileSidebar}
-          ></div>
-        )}
-
-        {/* Sidebar Wrapper */}
-        <div className={`
-            fixed inset-y-0 left-0 z-30 transition-all duration-300 transform 
-            ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-            md:relative md:translate-x-0 
-            ${isDesktopSidebarCollapsed ? 'w-20' : 'w-64'}
-            flex-shrink-0
-        `}>
-           <Sidebar 
-                currentView={currentView} 
-                setCurrentView={handleSetCurrentView} 
-                isCollapsed={isDesktopSidebarCollapsed}
-                toggleCollapse={toggleDesktopSidebar}
-            />
-        </div>
-
-        <div className="flex-1 flex flex-col overflow-hidden w-full transition-all duration-300">
-          <Header currentView={currentView} onMenuClick={toggleMobileSidebar} />
-          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4 md:p-6 relative scroll-smooth">
-            {renderView()}
-          </main>
-        </div>
-      </div>
+        <AppLayout 
+            currentView={currentView} 
+            setCurrentView={setCurrentView} 
+            onLogout={handleLogout} 
+        />
     </DataProvider>
   );
 };

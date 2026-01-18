@@ -1,14 +1,27 @@
-import React from 'react';
+
+import React, { useState } from 'react';
+import { Property } from '../../types';
 
 const invoiceStatuses = [
-    { id: 'draft', label: 'draft' },
-    { id: 'void', label: 'void' },
-    { id: 'open', label: 'open', checked: true },
-    { id: 'partial', label: 'partial', checked: true },
-    { id: 'paid', label: 'paid', checked: true },
-    { id: 'uncollectible', label: 'uncollectible' },
-    { id: 'credit-note', label: 'credit-note' },
+    { id: 'Draft', label: 'draft' },
+    { id: 'Void', label: 'void' },
+    { id: 'Unpaid', label: 'open/unpaid' },
+    { id: 'Paid', label: 'paid' },
+    { id: 'Pending', label: 'pending' },
+    { id: 'Overdue', label: 'overdue' },
 ];
+
+interface FiltersPanelProps {
+    searchTerm: string;
+    onSearchChange: (val: string) => void;
+    statusFilter: string[];
+    onStatusChange: (val: string[]) => void;
+    properties: Property[];
+    propertyFilter: string;
+    onPropertyChange: (val: string) => void;
+    dateRange: { start: string; end: string };
+    onDateRangeChange: (val: { start: string; end: string }) => void;
+}
 
 const FilterItem: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
     <div className="py-4 border-b border-gray-200">
@@ -17,22 +30,49 @@ const FilterItem: React.FC<{ title: string; children: React.ReactNode }> = ({ ti
     </div>
 );
 
-const FiltersPanel: React.FC = () => {
+const FiltersPanel: React.FC<FiltersPanelProps> = ({
+    searchTerm,
+    onSearchChange,
+    statusFilter,
+    onStatusChange,
+    properties,
+    propertyFilter,
+    onPropertyChange,
+    dateRange,
+    onDateRangeChange
+}) => {
+
+    const handleStatusToggle = (status: string) => {
+        if (statusFilter.includes(status)) {
+            onStatusChange(statusFilter.filter(s => s !== status));
+        } else {
+            onStatusChange([...statusFilter, status]);
+        }
+    };
+
     return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
             <div className="p-4 border-b border-gray-200 flex justify-between items-center">
                 <h3 className="font-semibold text-gray-800">Filters</h3>
-                <button className="text-gray-500 hover:text-gray-800">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                    </svg>
+                <button 
+                    onClick={() => {
+                        onSearchChange('');
+                        onStatusChange([]);
+                        onPropertyChange('');
+                        onDateRangeChange({ start: '', end: '' });
+                    }}
+                    className="text-xs text-blue-600 hover:underline"
+                >
+                    Clear All
                 </button>
             </div>
             <div className="p-4">
                 <div className="relative mb-4">
                     <input
                         type="search"
-                        placeholder="Type to search..."
+                        value={searchTerm}
+                        onChange={(e) => onSearchChange(e.target.value)}
+                        placeholder="Search Invoice #, Tenant..."
                         className="w-full bg-gray-50 border border-gray-300 rounded-md py-2 pl-4 pr-10 text-sm focus:ring-blue-500 focus:border-blue-500"
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -43,22 +83,33 @@ const FiltersPanel: React.FC = () => {
                 </div>
 
                 <FilterItem title="Date">
-                    <div className="flex items-center justify-between space-x-2">
-                        <input type="text" placeholder="Start Date" className="w-full text-sm border-gray-300 rounded-md" />
-                        <span>-</span>
-                        <input type="text" placeholder="End Date" className="w-full text-sm border-gray-300 rounded-md" />
+                    <div className="flex flex-col space-y-2">
+                        <input 
+                            type="date" 
+                            value={dateRange.start}
+                            onChange={(e) => onDateRangeChange({ ...dateRange, start: e.target.value })}
+                            className="w-full text-sm border-gray-300 rounded-md" 
+                        />
+                        <span className="text-center text-xs text-gray-400">to</span>
+                        <input 
+                            type="date" 
+                            value={dateRange.end}
+                            onChange={(e) => onDateRangeChange({ ...dateRange, end: e.target.value })}
+                            className="w-full text-sm border-gray-300 rounded-md" 
+                        />
                     </div>
                 </FilterItem>
 
                 <FilterItem title="Property / Unit">
-                     <select className="w-full text-sm border-gray-300 rounded-md">
-                        <option>All Properties</option>
-                    </select>
-                </FilterItem>
-
-                <FilterItem title="Invoice Item">
-                     <select className="w-full text-sm border-gray-300 rounded-md">
-                        <option>All</option>
+                     <select 
+                        value={propertyFilter}
+                        onChange={(e) => onPropertyChange(e.target.value)}
+                        className="w-full text-sm border-gray-300 rounded-md"
+                    >
+                        <option value="">All Properties</option>
+                        {properties.map(p => (
+                            <option key={p.id} value={p.name}>{p.name}</option>
+                        ))}
                     </select>
                 </FilterItem>
 
@@ -66,11 +117,12 @@ const FiltersPanel: React.FC = () => {
                     <h4 className="text-sm font-semibold text-gray-600 mb-3">Invoice Status</h4>
                     <div className="space-y-2">
                         {invoiceStatuses.map(status => (
-                            <label key={status.id} className="flex items-center">
+                            <label key={status.id} className="flex items-center cursor-pointer">
                                 <input
                                     type="checkbox"
                                     className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                    defaultChecked={status.checked}
+                                    checked={statusFilter.includes(status.id)}
+                                    onChange={() => handleStatusToggle(status.id)}
                                 />
                                 <span className="ml-2 text-sm text-gray-700 capitalize">{status.label}</span>
                             </label>

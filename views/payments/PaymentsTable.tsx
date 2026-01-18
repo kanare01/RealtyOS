@@ -1,18 +1,70 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { Payment } from '../../types';
+import Badge from '../../components/shared/Badge';
+import { useData } from '../../contexts/DataContext';
 
-const PaymentsTable: React.FC = () => {
+interface PaymentsTableProps {
+    payments: Payment[];
+}
+
+const PaymentsTable: React.FC<PaymentsTableProps> = ({ payments }) => {
+    const { deletePayment } = useData();
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [activeDropdownId, setActiveDropdownId] = useState<number | null>(null);
+
+    const toggleDropdown = (id: number) => {
+        setActiveDropdownId(activeDropdownId === id ? null : id);
+    };
+
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            setSelectedIds(payments.map(p => p.id));
+        } else {
+            setSelectedIds([]);
+        }
+    };
+
+    const handleSelectRow = (id: number) => {
+        if (selectedIds.includes(id)) {
+            setSelectedIds(selectedIds.filter(i => i !== id));
+        } else {
+            setSelectedIds([...selectedIds, id]);
+        }
+    };
+
+    const handleSendReceipts = () => {
+        if (selectedIds.length === 0) return;
+        alert(`Sending ${selectedIds.length} receipt(s)...`);
+        setSelectedIds([]);
+    };
+
+    const handleDelete = (id: number) => {
+        if (confirm("Are you sure you want to delete this payment record?")) {
+            deletePayment(id);
+            setActiveDropdownId(null);
+        }
+    };
+
     return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
             <div className="p-3 border-b border-gray-200 flex justify-between items-center">
                 <h3 className="font-medium text-blue-800 text-lg">Payments</h3>
-                 <button className="text-blue-800 hover:text-blue-900 font-bold text-xl">
-                    -
-                </button>
+                 <span className="text-sm text-gray-500">
+                    {selectedIds.length} selected
+                </span>
             </div>
             <div className="p-4">
                 <div className="flex justify-between items-center mb-4">
-                    <button className="px-4 py-2 text-sm font-medium text-blue-800 bg-white border border-blue-800 rounded hover:bg-blue-50 transition-colors flex items-center">
+                    <button 
+                        onClick={handleSendReceipts}
+                        disabled={selectedIds.length === 0}
+                        className={`px-4 py-2 text-sm font-medium border rounded transition-colors flex items-center ${
+                            selectedIds.length > 0 
+                            ? 'text-blue-800 bg-white border-blue-800 hover:bg-blue-50' 
+                            : 'text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed'
+                        }`}
+                    >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
                         </svg>
@@ -30,33 +82,86 @@ const PaymentsTable: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto min-h-[300px]">
                      <table className="min-w-full text-sm text-left">
                         <thead className="text-gray-500 font-medium border-b border-gray-100">
                             <tr>
-                                <th className="p-3 w-4"><input type="checkbox" className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"/></th>
-                                <th className="p-3 font-normal cursor-pointer hover:text-gray-700">
-                                    <div className="flex items-center">
-                                        Date
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                                        </svg>
-                                    </div>
+                                <th className="p-3 w-4">
+                                    <input 
+                                        type="checkbox" 
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        onChange={handleSelectAll}
+                                        checked={payments.length > 0 && selectedIds.length === payments.length}
+                                    />
                                 </th>
-                                <th className="p-3 font-normal">Payment ID/Number</th>
+                                <th className="p-3 font-normal cursor-pointer hover:text-gray-700">
+                                    Date
+                                </th>
+                                <th className="p-3 font-normal">Reference</th>
                                 <th className="p-3 font-normal">Tenant</th>
                                 <th className="p-3 font-normal">Property (Unit)</th>
+                                <th className="p-3 font-normal">Method</th>
                                 <th className="p-3 font-normal">Status</th>
-                                <th className="p-3 font-normal">Amount (KES)</th>
-                                <th className="p-3 font-normal">Options</th>
+                                <th className="p-3 font-normal text-right">Amount (KES)</th>
+                                <th className="p-3 font-normal text-center">Options</th>
                             </tr>
                         </thead>
-                        <tbody className="text-gray-600">
-                            {/* Empty state to match the image showing 0 results */}
-                            <tr>
-                                <td colSpan={8} className="p-4 text-center py-12">
-                                </td>
-                            </tr>
+                        <tbody className="text-gray-600 divide-y divide-gray-50">
+                            {payments.length === 0 ? (
+                                <tr>
+                                    <td colSpan={9} className="p-8 text-center text-gray-500">
+                                        No payments found.
+                                    </td>
+                                </tr>
+                            ) : (
+                                payments.map(payment => (
+                                    <tr key={payment.id} className="hover:bg-gray-50 relative">
+                                        <td className="p-3">
+                                            <input 
+                                                type="checkbox" 
+                                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                checked={selectedIds.includes(payment.id)}
+                                                onChange={() => handleSelectRow(payment.id)}
+                                            />
+                                        </td>
+                                        <td className="p-3">{payment.date}</td>
+                                        <td className="p-3 font-mono text-xs">{payment.paymentId}</td>
+                                        <td className="p-3 font-medium text-blue-800">{payment.tenantName}</td>
+                                        <td className="p-3 text-xs">{payment.propertyName} <span className="text-gray-400">({payment.unitName})</span></td>
+                                        <td className="p-3">{payment.method}</td>
+                                        <td className="p-3">
+                                            <Badge color={payment.status === 'confirmed' ? 'green' : 'yellow'}>
+                                                {payment.status}
+                                            </Badge>
+                                        </td>
+                                        <td className="p-3 font-medium text-right text-gray-800">{payment.amount.toLocaleString()}</td>
+                                        <td className="p-3 text-center relative">
+                                            <button 
+                                                onClick={() => toggleDropdown(payment.id)}
+                                                className="text-gray-400 hover:text-blue-800"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                                                </svg>
+                                            </button>
+
+                                            {activeDropdownId === payment.id && (
+                                                <>
+                                                    <div className="fixed inset-0 z-10" onClick={() => setActiveDropdownId(null)}></div>
+                                                    <div className="absolute right-0 top-8 w-32 bg-white border border-gray-200 rounded shadow-xl z-20 overflow-hidden">
+                                                        <button 
+                                                            onClick={() => handleDelete(payment.id)}
+                                                            className="block w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                      </table>
                 </div>
@@ -68,7 +173,7 @@ const PaymentsTable: React.FC = () => {
                             <option>25</option>
                             <option>50</option>
                         </select>
-                        <p>Showing 0 to 0 of 0 results</p>
+                        <p>Showing {payments.length > 0 ? 1 : 0} to {payments.length} of {payments.length} results</p>
                     </div>
                     <div className="flex items-center space-x-1">
                         <button className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded hover:bg-gray-50 text-gray-400" disabled>&laquo;</button>

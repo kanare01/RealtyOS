@@ -1,7 +1,12 @@
 
 import React from 'react';
+import { PropertyGrouping } from '../../types';
 
-const PropertyGroupingSummary: React.FC = () => {
+interface PropertyGroupingSummaryProps {
+    propertyGroupings: PropertyGrouping[];
+}
+
+const PropertyGroupingSummary: React.FC<PropertyGroupingSummaryProps> = ({ propertyGroupings }) => {
     return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
              <div className="p-3 border-b border-gray-200 flex justify-between items-center">
@@ -17,7 +22,7 @@ const PropertyGroupingSummary: React.FC = () => {
                         <p className="text-gray-500 text-sm">Total Groupings</p>
                         <span className="w-12 h-[1px] bg-gray-200 ml-4"></span>
                     </div>
-                    <div className="text-[#1a237e] text-3xl font-medium">0</div>
+                    <div className="text-[#1a237e] text-3xl font-medium">{propertyGroupings.length}</div>
                 </div>
             </div>
         </div>

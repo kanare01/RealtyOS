@@ -1,0 +1,42 @@
+
+version: '3.8'
+
+services:
+  # Unified Web Service (Frontend + Backend)
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      # Map uploads for persistence in dev
+      - realtyos_uploads:/app/app/static/uploads
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://realty_user:realty_password@db:5432/realty_db
+      - LOG_TO_STDOUT=true
+      # Ensure this matches your production setup
+      - SECRET_KEY=prod-secret-key-change-this-in-env-file
+    depends_on:
+      - db
+    restart: always
+
+  # PostgreSQL Database Service
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=realty_user
+      - POSTGRES_PASSWORD=realty_password
+      - POSTGRES_DB=realty_db
+    ports:
+      - "5432:5432"
+    restart: always
+
+volumes:
+  postgres_data:
+  realtyos_uploads:

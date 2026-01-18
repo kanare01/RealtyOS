@@ -1,19 +1,49 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View } from '../../types';
+import { useData } from '../../contexts/DataContext';
+import { API_BASE_URL } from '../../config';
 
 interface AlertsSettingsViewProps {
     setCurrentView: (view: View) => void;
 }
 
 const AlertsSettingsView: React.FC<AlertsSettingsViewProps> = ({ setCurrentView }) => {
+    const { addNotification } = useData();
     const [paymentAlerts, setPaymentAlerts] = useState(false);
     const [receiveReports, setReceiveReports] = useState(true);
     const [reportFrequency, setReportFrequency] = useState({
-        monthly: false,
+        monthly: true,
         weekly: false,
         daily: false
     });
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        // Fetch current settings
+        const fetchSettings = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_BASE_URL}/settings`, {
+                    headers: { 'Authorization': token ? `Bearer ${token}` : '' }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.alert_payment) setPaymentAlerts(data.alert_payment === 'true');
+                    if (data.alert_reports) setReceiveReports(data.alert_reports === 'true');
+                    
+                    setReportFrequency({
+                        monthly: data.report_freq_monthly === 'true',
+                        weekly: data.report_freq_weekly === 'true',
+                        daily: data.report_freq_daily === 'true'
+                    });
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     const settingsMenu: { label: string; view: View }[] = [
         { label: 'General', view: 'General' },
@@ -29,11 +59,54 @@ const AlertsSettingsView: React.FC<AlertsSettingsViewProps> = ({ setCurrentView 
     ];
 
     const toggleFrequency = (key: keyof typeof reportFrequency) => {
+        if (!receiveReports) return;
         setReportFrequency(prev => ({ ...prev, [key]: !prev[key] }));
     };
 
+    const handleSaveSettings = async () => {
+        setIsSaving(true);
+        const payload = {
+            alert_payment: paymentAlerts.toString(),
+            alert_reports: receiveReports.toString(),
+            report_freq_monthly: reportFrequency.monthly.toString(),
+            report_freq_weekly: reportFrequency.weekly.toString(),
+            report_freq_daily: reportFrequency.daily.toString()
+        };
+
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE_URL}/settings`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': token ? `Bearer ${token}` : '' 
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                addNotification('Alert preferences updated successfully.', 'success');
+            } else {
+                addNotification('Failed to update settings.', 'error');
+            }
+        } catch (e) {
+            addNotification('Network error.', 'error');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleRestoreDefaults = () => {
+        if(confirm("Are you sure you want to restore default alert settings?")) {
+            setPaymentAlerts(false);
+            setReceiveReports(true);
+            setReportFrequency({ monthly: true, weekly: false, daily: false });
+            addNotification('Default settings restored. Click Save to persist.', 'info');
+        }
+    };
+
     return (
-        <div className="animate-fadeIn max-w-6xl mx-auto pb-20">
+        <div className="animate-fadeIn max-w-6xl mx-auto pb-20 relative">
             <div className="flex flex-col md:flex-row gap-8">
                 {/* Settings Sidebar */}
                 <div className="w-full md:w-64 flex-shrink-0">
@@ -56,82 +129,85 @@ const AlertsSettingsView: React.FC<AlertsSettingsViewProps> = ({ setCurrentView 
 
                 {/* Main Content */}
                 <div className="flex-1">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-medium text-gray-700">Alerts & Notifications</h2>
+                    </div>
+
                     <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden min-h-[300px]">
                         
                         <div className="p-8 space-y-8">
                             {/* Payment Alerts */}
-                            <div className="flex items-center">
-                                <label htmlFor="paymentAlerts" className="text-sm text-gray-500 w-48">
+                            <div className="flex items-center justify-between sm:justify-start">
+                                <label htmlFor="paymentAlerts" className="text-sm font-medium text-gray-700 w-48">
                                     Receive Payment Alerts
                                 </label>
-                                <input 
-                                    id="paymentAlerts"
-                                    type="checkbox" 
-                                    checked={paymentAlerts}
-                                    onChange={(e) => setPaymentAlerts(e.target.checked)}
-                                    className="h-4 w-4 text-[#1a237e] focus:ring-[#1a237e] border-gray-300 rounded" 
-                                />
+                                <div className="flex items-center">
+                                    <input 
+                                        id="paymentAlerts"
+                                        type="checkbox" 
+                                        checked={paymentAlerts}
+                                        onChange={(e) => setPaymentAlerts(e.target.checked)}
+                                        className="h-5 w-5 text-[#1a237e] focus:ring-[#1a237e] border-gray-300 rounded cursor-pointer" 
+                                    />
+                                    <span className="ml-2 text-sm text-gray-500">Notify me when a payment is recorded</span>
+                                </div>
                             </div>
 
                             <hr className="border-gray-100" />
 
                             {/* Reports */}
-                            <div className="flex flex-col sm:flex-row sm:items-center">
-                                <div className="flex items-center w-48 mb-4 sm:mb-0">
-                                    <label htmlFor="receiveReports" className="text-sm text-gray-500 mr-4 sm:mr-0 w-full">
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between sm:justify-start">
+                                    <label htmlFor="receiveReports" className="text-sm font-medium text-gray-700 w-48">
                                         Receive Reports
                                     </label>
-                                    <input 
-                                        id="receiveReports"
-                                        type="checkbox" 
-                                        checked={receiveReports}
-                                        onChange={(e) => setReceiveReports(e.target.checked)}
-                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded sm:hidden" 
-                                    />
+                                    <div className="flex items-center">
+                                        <input 
+                                            id="receiveReports"
+                                            type="checkbox" 
+                                            checked={receiveReports}
+                                            onChange={(e) => setReceiveReports(e.target.checked)}
+                                            className="h-5 w-5 text-[#1a237e] focus:ring-[#1a237e] border-gray-300 rounded cursor-pointer" 
+                                        />
+                                        <span className="ml-2 text-sm text-gray-500">Enable automated email reports</span>
+                                    </div>
                                 </div>
                                 
-                                <div className="flex items-center flex-wrap gap-x-8 gap-y-2">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={receiveReports}
-                                        onChange={(e) => setReceiveReports(e.target.checked)}
-                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded hidden sm:block" 
-                                    />
+                                <div className={`ml-0 sm:ml-48 pl-0 sm:pl-0 transition-opacity duration-300 ${receiveReports ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
+                                    <p className="text-sm text-gray-600 mb-3 font-medium">Frequency:</p>
+                                    <div className="flex flex-wrap gap-6">
+                                        <label className="flex items-center cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={reportFrequency.monthly}
+                                                onChange={() => toggleFrequency('monthly')}
+                                                disabled={!receiveReports}
+                                                className="h-4 w-4 text-[#1a237e] focus:ring-[#1a237e] border-gray-300 rounded" 
+                                            />
+                                            <span className="ml-2 text-sm text-gray-600">Monthly</span>
+                                        </label>
 
-                                    <div className="flex items-center">
-                                        <label htmlFor="monthly" className="text-sm text-gray-500 mr-3">Monthly</label>
-                                        <input 
-                                            id="monthly"
-                                            type="checkbox" 
-                                            checked={reportFrequency.monthly}
-                                            onChange={() => toggleFrequency('monthly')}
-                                            disabled={!receiveReports}
-                                            className="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 rounded" 
-                                        />
-                                    </div>
+                                        <label className="flex items-center cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={reportFrequency.weekly}
+                                                onChange={() => toggleFrequency('weekly')}
+                                                disabled={!receiveReports}
+                                                className="h-4 w-4 text-[#1a237e] focus:ring-[#1a237e] border-gray-300 rounded" 
+                                            />
+                                            <span className="ml-2 text-sm text-gray-600">Weekly</span>
+                                        </label>
 
-                                    <div className="flex items-center">
-                                        <label htmlFor="weekly" className="text-sm text-gray-500 mr-3">Weekly</label>
-                                        <input 
-                                            id="weekly"
-                                            type="checkbox" 
-                                            checked={reportFrequency.weekly}
-                                            onChange={() => toggleFrequency('weekly')}
-                                            disabled={!receiveReports}
-                                            className="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 rounded" 
-                                        />
-                                    </div>
-
-                                    <div className="flex items-center">
-                                        <label htmlFor="daily" className="text-sm text-gray-500 mr-3">Daily</label>
-                                        <input 
-                                            id="daily"
-                                            type="checkbox" 
-                                            checked={reportFrequency.daily}
-                                            onChange={() => toggleFrequency('daily')}
-                                            disabled={!receiveReports}
-                                            className="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 rounded" 
-                                        />
+                                        <label className="flex items-center cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={reportFrequency.daily}
+                                                onChange={() => toggleFrequency('daily')}
+                                                disabled={!receiveReports}
+                                                className="h-4 w-4 text-[#1a237e] focus:ring-[#1a237e] border-gray-300 rounded" 
+                                            />
+                                            <span className="ml-2 text-sm text-gray-600">Daily</span>
+                                        </label>
                                     </div>
                                 </div>
                             </div>
@@ -140,11 +216,18 @@ const AlertsSettingsView: React.FC<AlertsSettingsViewProps> = ({ setCurrentView 
                         </div>
 
                         {/* Actions */}
-                        <div className="px-8 pb-8 bg-gray-50/50 flex justify-center gap-4">
-                            <button className="bg-[#5c54a0] hover:bg-[#4a438a] text-white font-medium py-2 px-6 rounded shadow-sm text-sm transition-colors">
-                                Save Settings
+                        <div className="px-8 pb-8 bg-gray-50/50 flex flex-col sm:flex-row justify-center gap-4 border-t border-gray-100 pt-6">
+                            <button 
+                                onClick={handleSaveSettings}
+                                disabled={isSaving}
+                                className={`bg-[#1a237e] hover:bg-blue-900 text-white font-medium py-2 px-6 rounded shadow-sm text-sm transition-colors flex items-center justify-center min-w-[140px] ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            >
+                                {isSaving ? 'Saving...' : 'Save Settings'}
                             </button>
-                            <button className="bg-[#000080] hover:bg-[#000060] text-white font-medium py-2 px-6 rounded shadow-sm text-sm transition-colors">
+                            <button 
+                                onClick={handleRestoreDefaults}
+                                className="bg-white border border-[#1a237e] text-[#1a237e] hover:bg-blue-50 font-medium py-2 px-6 rounded shadow-sm text-sm transition-colors"
+                            >
                                 Restore Default Settings
                             </button>
                         </div>

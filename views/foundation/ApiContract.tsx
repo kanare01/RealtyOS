@@ -1,61 +1,61 @@
+
 import React from 'react';
 
 const CodeBlock: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <div className="bg-gray-900/70 rounded-lg overflow-hidden border border-gray-700">
-    <div className="bg-gray-700/50 py-2 px-4">
-      <h4 className="text-sm font-semibold text-gray-300">{title}</h4>
+  <div className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+    <div className="bg-gray-100 py-2 px-4 border-b border-gray-200">
+      <h4 className="text-sm font-semibold text-gray-700">{title}</h4>
     </div>
-    <pre className="p-4 text-xs text-pink-300 overflow-x-auto">
+    <pre className="p-4 text-xs text-blue-900 font-mono overflow-x-auto bg-white">
       <code>{children}</code>
     </pre>
   </div>
 );
 
 const ApiContract: React.FC = () => {
-  const queryExample = `
-query GetPropertyDetails($id: ID!) {
-  property(id: $id) {
-    id
-    name
-    address
-    units {
-      id
-      unitNumber
-      status
-      tenant {
-        name
-      }
-    }
+  const getExample = `
+// GET /api/properties
+[
+  {
+    "id": 1,
+    "name": "Sunset Apartments",
+    "address": "123 Ngong Road",
+    "type": "Residential",
+    "units": 12,
+    "occupancy": 85
   }
-}`;
+]`;
 
-  const mutationExample = `
-mutation CreateInvoice($input: CreateInvoiceInput!) {
-  createInvoice(input: $input) {
-    invoice {
-      id
-      status
-      dueDate
-      amount
-    }
-    errors {
-      field
-      message
-    }
-  }
+  const postExample = `
+// POST /api/invoices
+{
+  "tenant_id": 105,
+  "amount": 25000,
+  "due_date": "2025-11-05",
+  "items": [
+    { "description": "Rent - Nov", "amount": 25000 }
+  ]
+}
+
+// Response: 201 Created
+{
+  "id": 8821,
+  "status": "Unpaid",
+  "invoice_number": "INV-8821",
+  "total_amount": 25000
 }`;
 
   return (
-    <div className="bg-gray-800 border border-gray-600/50 rounded-lg p-6 flex flex-col shadow-lg">
-      <div className="mb-6">
-        <h3 className="text-xl font-bold text-white mb-2">GraphQL API Contract</h3>
-        <p className="text-sm text-gray-400">
-          The backend exposes a GraphQL API for flexible and efficient data fetching. All frontend communication goes through a single endpoint.
+    <div className="bg-white border border-gray-200 rounded-lg p-8 shadow-sm flex flex-col">
+      <div className="mb-8">
+        <h3 className="text-2xl font-bold text-gray-800 mb-2">REST API Contract</h3>
+        <p className="text-gray-500">
+          The backend exposes a standard RESTful API. Endpoints consume and return JSON.
         </p>
       </div>
-      <div className="space-y-6">
-        <CodeBlock title="Example Query: Fetch Property">{queryExample.trim()}</CodeBlock>
-        <CodeBlock title="Example Mutation: Create Invoice">{mutationExample.trim()}</CodeBlock>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <CodeBlock title="Example: Fetch Properties">{getExample.trim()}</CodeBlock>
+        <CodeBlock title="Example: Create Invoice">{postExample.trim()}</CodeBlock>
       </div>
     </div>
   );

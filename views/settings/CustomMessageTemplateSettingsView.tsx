@@ -1,6 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View } from '../../types';
+import { useData } from '../../contexts/DataContext';
+import { API_BASE_URL } from '../../config';
 
 interface CustomMessageTemplateSettingsViewProps {
     setCurrentView: (view: View) => void;
@@ -14,98 +16,189 @@ interface Template {
     content: string;
 }
 
-const mockTemplates: Template[] = [
+const defaultTemplates: Template[] = [
     {
         id: 1,
-        name: 'comprehensive reminder',
+        name: 'Comprehensive Reminder',
         type: 'email',
-        description: 'This template is used to send comprehensive balance reminders that includes previous and current month balances breakdown',
-        content: 'Previous balance:[PREVIOUS MONTH BALANCE], [CURRENT MONTH] balance: [CURRENT MONTH BALANCE]. Total due is KES [TOTAL BALANCE]. [PAYMENT INSTRUCTION]. [SIGNATURE]'
+        description: 'Used to send comprehensive balance reminders.',
+        content: 'Dear [TENANT_NAME], Previous balance: [PREVIOUS_BALANCE], [CURRENT_MONTH] balance: [CURRENT_BALANCE]. Total due is KES [TOTAL_BALANCE]. [PAYMENT_INSTRUCTIONS].'
     },
     {
         id: 2,
-        name: 'comprehensive reminder',
+        name: 'Simple SMS Reminder',
         type: 'sms',
-        description: 'This template is used to send comprehensive balance reminders that includes previous and current month balances breakdown',
-        content: 'Previous balance:[PREVIOUS MONTH BALANCE], [CURRENT MONTH] balance: [CURRENT MONTH BALANCE]. Total due is KES [TOTAL BALANCE]. [PAYMENT INSTRUCTION]. [SIGNATURE]'
-    },
-    {
-        id: 3,
-        name: 'invoice reminder',
-        type: 'email',
-        description: 'This template is used to send invoice reminders',
-        content: 'KES [TOTAL BALANCE] is due for [INVOICE ITEMS] and other bills [PAYMENT INSTRUCTION] [SIGNATURE]'
-    },
-    {
-        id: 4,
-        name: 'invoice reminder',
-        type: 'sms',
-        description: 'This template is used to send invoice reminders',
-        content: 'KES [TOTAL BALANCE] is due for [INVOICE ITEMS] and other bills [PAYMENT INSTRUCTION] [SIGNATURE]'
+        description: 'A short reminder for SMS notifications.',
+        content: 'Hi [TENANT_NAME], your total due is KES [TOTAL_BALANCE]. Please pay by [DUE_DATE].'
     }
 ];
 
-const TemplateRow: React.FC<{ label: string; value: string; isLast?: boolean }> = ({ label, value, isLast }) => (
-    <div className={`flex flex-col md:flex-row md:items-start py-3 px-4 ${!isLast ? 'border-b border-gray-100' : ''}`}>
-        <div className="w-full md:w-1/4 font-semibold text-gray-500 text-sm mb-1 md:mb-0">
-            {label}
-        </div>
-        <div className="w-full md:w-3/4 text-gray-500 text-sm leading-relaxed">
-            {value}
-        </div>
-    </div>
-);
+const availablePlaceholders = [
+    '[TENANT_NAME]', '[TOTAL_BALANCE]', '[PREVIOUS_BALANCE]', '[CURRENT_BALANCE]', 
+    '[CURRENT_MONTH]', '[PAYMENT_INSTRUCTIONS]', '[SIGNATURE]', '[DUE_DATE]', 
+    '[INVOICE_NUMBER]', '[INVOICE_AMOUNT]', '[AMOUNT_PAID]'
+];
 
-const TemplateCard: React.FC<{ template: Template; defaultExpanded?: boolean }> = ({ template, defaultExpanded = false }) => {
-    const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+const TemplateCard: React.FC<{ 
+    template: Template; 
+    onUpdate: (updatedTemplate: Template) => void;
+}> = ({ template, onUpdate }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [formData, setFormData] = useState<Template>(template);
+
+    const handleSave = (e: React.FormEvent) => {
+        e.stopPropagation();
+        onUpdate(formData);
+        setIsEditing(false);
+    };
+
+    const handleCancel = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setFormData(template);
+        setIsEditing(false);
+    };
+
+    const toggleEdit = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsEditing(!isEditing);
+        if (!isExpanded) setIsExpanded(true);
+    };
 
     return (
-        <div className="bg-white border border-gray-200 rounded-sm mb-4 transition-shadow hover:shadow-sm">
-            {/* Header (Always Visible) */}
+        <div className={`bg-white border rounded-lg mb-4 transition-all duration-200 ${isExpanded ? 'border-[#1a237e] shadow-md' : 'border-gray-200 hover:shadow-sm'}`}>
             <div 
                 className="flex flex-col md:flex-row md:items-center justify-between p-4 cursor-pointer select-none"
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={() => !isEditing && setIsExpanded(!isExpanded)}
             >
                 <div className="flex items-center space-x-3 mb-2 md:mb-0 w-full md:w-1/3">
-                    <span className="text-gray-500 text-sm">{template.name}</span>
-                    <span className="bg-gray-200 text-gray-600 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">
+                    <span className="font-medium text-gray-700 text-sm">{template.name}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${template.type === 'email' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
                         {template.type}
                     </span>
                     <svg 
                         xmlns="http://www.w3.org/2000/svg" 
-                        className={`h-4 w-4 text-[#1a237e] transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} 
+                        className={`h-4 w-4 text-gray-400 transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} 
                         viewBox="0 0 20 20" 
                         fill="currentColor"
                     >
-                        <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                     </svg>
                 </div>
 
                 {!isExpanded && (
-                    <div className="flex-1 text-xs text-gray-400 truncate md:mr-4">
+                    <div className="flex-1 text-xs text-gray-500 truncate md:mr-4">
                         {template.content}
                     </div>
                 )}
 
                 <div className="flex justify-end md:w-auto">
-                    <button className="text-[#1a237e] hover:text-blue-800 font-bold text-lg leading-none px-2">
-                        ...
+                    <button 
+                        onClick={toggleEdit}
+                        className="text-gray-400 hover:text-[#1a237e] p-1"
+                        title="Edit Template"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
                     </button>
                 </div>
             </div>
 
-            {/* Expanded Content */}
             {isExpanded && (
-                <div className="animate-fadeIn">
-                    <div className="bg-[#000080] text-center py-2 text-white text-sm font-medium">
-                        Edit Custom Template
-                    </div>
-                    <div className="bg-white border-t border-gray-100">
-                        <TemplateRow label="Name" value={template.name} />
-                        <TemplateRow label="Type" value={template.type} />
-                        <TemplateRow label="Description" value={template.description} />
-                        <TemplateRow label="Content" value={template.content} isLast />
-                    </div>
+                <div className="border-t border-gray-100 p-6 bg-gray-50/50 rounded-b-lg animate-fadeIn">
+                    {isEditing ? (
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Template Name</label>
+                                    <input 
+                                        type="text" 
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                        className="w-full border-gray-300 rounded-md shadow-sm focus:ring-[#1a237e] focus:border-[#1a237e] text-sm p-2"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Type</label>
+                                    <select 
+                                        value={formData.type}
+                                        onChange={(e) => setFormData({...formData, type: e.target.value as 'email'|'sms'})}
+                                        className="w-full border-gray-300 rounded-md shadow-sm focus:ring-[#1a237e] focus:border-[#1a237e] text-sm p-2 bg-white"
+                                    >
+                                        <option value="email">Email</option>
+                                        <option value="sms">SMS</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Description</label>
+                                <input 
+                                    type="text" 
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                    className="w-full border-gray-300 rounded-md shadow-sm focus:ring-[#1a237e] focus:border-[#1a237e] text-sm p-2"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Content</label>
+                                <textarea 
+                                    value={formData.content}
+                                    onChange={(e) => setFormData({...formData, content: e.target.value})}
+                                    rows={4}
+                                    className="w-full border-gray-300 rounded-md shadow-sm focus:ring-[#1a237e] focus:border-[#1a237e] text-sm p-2"
+                                />
+                                <p className="text-xs text-gray-500 mt-1 text-right">{formData.content.length} characters</p>
+                            </div>
+
+                            <div className="flex justify-end space-x-3 pt-2">
+                                <button 
+                                    onClick={handleCancel}
+                                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 text-sm font-medium transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={handleSave}
+                                    className="px-4 py-2 bg-[#1a237e] text-white rounded-md hover:bg-blue-900 text-sm font-medium transition-colors shadow-sm"
+                                >
+                                    Save Changes
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-gray-200 pb-4">
+                                <div>
+                                    <span className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Type</span>
+                                    <span className="text-sm text-gray-700 capitalize">{template.type}</span>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <span className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Description</span>
+                                    <span className="text-sm text-gray-700">{template.description}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <span className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Message Content</span>
+                                <div className="bg-white border border-gray-200 rounded p-3 text-sm text-gray-600 font-mono whitespace-pre-wrap leading-relaxed">
+                                    {template.content}
+                                </div>
+                            </div>
+                            <div className="flex justify-end pt-2">
+                                <button 
+                                    onClick={() => setIsEditing(true)}
+                                    className="text-[#1a237e] hover:text-blue-900 text-sm font-medium flex items-center"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                    Edit Template
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
@@ -113,6 +206,37 @@ const TemplateCard: React.FC<{ template: Template; defaultExpanded?: boolean }> 
 };
 
 const CustomMessageTemplateSettingsView: React.FC<CustomMessageTemplateSettingsViewProps> = ({ setCurrentView }) => {
+    const { addNotification } = useData();
+    const [templates, setTemplates] = useState<Template[]>(defaultTemplates);
+
+    useEffect(() => {
+        // Fetch custom templates from settings
+        const fetchTemplates = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_BASE_URL}/settings`, {
+                    headers: { 'Authorization': token ? `Bearer ${token}` : '' }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.custom_message_templates) {
+                        try {
+                            const parsed = JSON.parse(data.custom_message_templates);
+                            if (Array.isArray(parsed) && parsed.length > 0) {
+                                setTemplates(parsed);
+                            }
+                        } catch (e) {
+                            console.error("Failed to parse templates", e);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        };
+        fetchTemplates();
+    }, []);
+
     const settingsMenu: { label: string; view: View }[] = [
         { label: 'General', view: 'General' },
         { label: 'Backup', view: 'Backup' },
@@ -126,8 +250,31 @@ const CustomMessageTemplateSettingsView: React.FC<CustomMessageTemplateSettingsV
         { label: 'Audit Trail', view: 'Audit Trail' },
     ];
 
+    const handleUpdateTemplate = async (updatedTemplate: Template) => {
+        const newTemplates = templates.map(t => t.id === updatedTemplate.id ? updatedTemplate : t);
+        setTemplates(newTemplates);
+        
+        // Persist to backend settings
+        try {
+            const token = localStorage.getItem('token');
+            await fetch(`${API_BASE_URL}/settings`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': token ? `Bearer ${token}` : '' 
+                },
+                body: JSON.stringify({
+                    custom_message_templates: JSON.stringify(newTemplates)
+                })
+            });
+            addNotification(`'${updatedTemplate.name}' updated successfully.`, 'success');
+        } catch (e) {
+            addNotification('Failed to save template.', 'error');
+        }
+    };
+
     return (
-        <div className="animate-fadeIn max-w-6xl mx-auto pb-20">
+        <div className="animate-fadeIn max-w-6xl mx-auto pb-20 relative">
             <div className="flex flex-col md:flex-row gap-8">
                 {/* Settings Sidebar */}
                 <div className="w-full md:w-64 flex-shrink-0">
@@ -150,15 +297,46 @@ const CustomMessageTemplateSettingsView: React.FC<CustomMessageTemplateSettingsV
 
                 {/* Main Content */}
                 <div className="flex-1">
-                    <div className="mb-6">
-                        <h2 className="text-2xl font-medium text-gray-700">Custom Message Templates</h2>
-                        <p className="text-sm text-gray-800 mt-1">Use this page to customize messages (SMS or Email) sent to Tenants</p>
+                    <div className="mb-6 flex justify-between items-start">
+                        <div>
+                            <h2 className="text-2xl font-medium text-gray-700">Custom Message Templates</h2>
+                            <p className="text-sm text-gray-500 mt-1">Customize messages (SMS or Email) sent to your tenants.</p>
+                        </div>
                     </div>
 
-                    <div className="space-y-0">
-                        {mockTemplates.map((template, index) => (
-                            <TemplateCard key={template.id} template={template} defaultExpanded={index === 0} />
-                        ))}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Templates List */}
+                        <div className="lg:col-span-2">
+                            {templates.map((template) => (
+                                <TemplateCard 
+                                    key={template.id} 
+                                    template={template} 
+                                    onUpdate={handleUpdateTemplate}
+                                />
+                            ))}
+                        </div>
+
+                        {/* Helper Column */}
+                        <div className="lg:col-span-1">
+                            <div className="bg-blue-50 border border-blue-100 rounded-lg p-5 sticky top-6">
+                                <h3 className="font-semibold text-[#1a237e] mb-2 text-sm">Available Placeholders</h3>
+                                <p className="text-xs text-gray-600 mb-4">
+                                    Copy and paste these codes into your message content. They will be replaced with actual data when sending.
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                    {availablePlaceholders.map(ph => (
+                                        <span 
+                                            key={ph} 
+                                            className="bg-white border border-blue-200 text-blue-800 text-[10px] font-mono px-2 py-1 rounded cursor-pointer hover:bg-blue-100 transition-colors"
+                                            title="Click to copy"
+                                            onClick={() => navigator.clipboard.writeText(ph)}
+                                        >
+                                            {ph}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

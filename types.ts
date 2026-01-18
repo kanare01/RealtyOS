@@ -27,12 +27,22 @@ export type View =
   | 'Billing'
   | 'MPESA Transactions'
   | 'Audit Trail'
+  | 'User Feedback'
+  | 'System Status'
   | 'Foundation'
   | 'Getting Started'
   | 'PropertyForm'
   | 'UnitForm'
   | 'TenantForm'
-  | 'BulkTenantForm';
+  | 'BulkTenantForm'
+  | 'InvoiceForm'
+  | 'PaymentForm'
+  | 'BankStatementUpload'
+  | 'ExpenseForm'
+  | 'RecurringExpenseForm'
+  | 'UtilityForm'
+  | 'MaintenanceForm'
+  | 'PropertyGroupingForm';
 
 export interface RecurringBill {
   type: string;
@@ -147,11 +157,14 @@ export interface RecurringExpense {
 export interface Invoice {
   id: number;
   date: string;
+  dueDate: string;
   invoiceNumber: string;
   tenantName: string;
-  item: string;
-  amount: number;
-  status: 'paid' | 'unpaid' | 'pending';
+  property: string;
+  unit: string;
+  items: { description: string; amount: number }[];
+  totalAmount: number;
+  status: 'Paid' | 'Unpaid' | 'Pending' | 'Overdue';
 }
 
 export interface Payment {
@@ -164,4 +177,93 @@ export interface Payment {
   amount: number;
   method: string;
   status: 'confirmed' | 'pending';
+}
+
+export interface Utility {
+  id: number;
+  date: string;
+  propertyName: string;
+  unitName: string;
+  type: string;
+  previousReading: number;
+  currentReading: number;
+  consumption: number;
+  rate: number;
+  amount: number;
+  status: 'Uninvoiced' | 'Invoiced';
+  invoiceNumber?: string;
+}
+
+export interface MaintenanceRequest {
+  id: number;
+  title: string;
+  date: string;
+  propertyName: string;
+  unitName: string;
+  category: string;
+  priority: 'Low' | 'Medium' | 'High' | 'Critical';
+  status: 'Open' | 'In Progress' | 'Closed' | 'On Hold';
+  description?: string;
+  cost?: number;
+  assignedTo?: string;
+}
+
+export interface PropertyGrouping {
+  id: number;
+  name: string;
+  description: string;
+  managerName: string;
+  propertyIds: number[];
+}
+
+export interface Message {
+  id: number;
+  date: string;
+  recipient: string;
+  recipientGroup: 'Tenant' | 'Team' | 'All Tenants';
+  property?: string;
+  unit?: string;
+  type: 'SMS' | 'Email';
+  status: 'Delivered' | 'Failed' | 'Pending' | 'Sent';
+  content: string;
+}
+
+export interface TeamMember {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  username: string;
+  role: string;
+  password?: string; // Optional for form
+}
+
+export interface AuditLog {
+  id: number;
+  username: string;
+  fullName: string;
+  action: string;
+  date: string;
+  description: string;
+  ipAddress?: string;
+}
+
+export interface MpesaTransaction {
+  id: number;
+  reference: string;
+  status: string;
+  description: string;
+  shortcode: string;
+  date: string;
+  amount: number;
+  tenant: string;
+}
+
+export interface Feedback {
+    id: number;
+    type: string;
+    message: string;
+    status: string;
+    username: string;
+    createdAt: string;
 }

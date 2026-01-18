@@ -1,14 +1,17 @@
 
 import React from 'react';
-import { useData } from '../../contexts/DataContext';
+import { RecurringExpense } from '../../types';
 
-const RecurringExpensesSummaryCard: React.FC = () => {
-    const { recurringExpenses } = useData();
-    const monthlyTotal = recurringExpenses
+interface RecurringExpensesSummaryCardProps {
+    expenses: RecurringExpense[];
+}
+
+const RecurringExpensesSummaryCard: React.FC<RecurringExpensesSummaryCardProps> = ({ expenses }) => {
+    const monthlyTotal = expenses
         .filter(e => e.status === 'Active' && e.frequency === 'Monthly')
         .reduce((sum, e) => sum + e.amount, 0);
     
-    const activeCount = recurringExpenses.filter(e => e.status === 'Active').length;
+    const activeCount = expenses.filter(e => e.status === 'Active').length;
 
     return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -17,7 +20,7 @@ const RecurringExpensesSummaryCard: React.FC = () => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-200">
                 <div className="p-6 text-center">
-                    <p className="text-sm font-medium text-gray-500 mb-1">Monthly Liability</p>
+                    <p className="text-sm font-medium text-gray-500 mb-1">Monthly Liability (Active)</p>
                     <p className="text-3xl font-bold text-gray-800">{monthlyTotal.toLocaleString()}</p>
                     <p className="text-xs text-gray-400 mt-1">KES / Month</p>
                 </div>

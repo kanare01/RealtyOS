@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View } from '../../types';
 import { useData } from '../../contexts/DataContext';
 
@@ -7,7 +7,7 @@ interface PropertyFormViewProps {
     setCurrentView: (view: View) => void;
 }
 
-// Helper component moved outside to prevent re-renders losing focus
+// Helper component
 const FormRow = ({ label, subLabel, children, helpIcon = false }: { label: string, subLabel?: string, children?: React.ReactNode, helpIcon?: boolean }) => (
     <div className="flex flex-col md:flex-row md:items-center mb-6">
         <div className="w-full md:w-1/3 text-left md:text-right pr-6 mb-2 md:mb-0">
@@ -28,7 +28,7 @@ const FormRow = ({ label, subLabel, children, helpIcon = false }: { label: strin
 );
 
 const PropertyFormView: React.FC<PropertyFormViewProps> = ({ setCurrentView }) => {
-    const { addProperty } = useData();
+    const { addProperty, updateProperty, editingProperty, setEditingProperty, addNotification } = useData();
     
     // Core Fields
     const [propertyName, setPropertyName] = useState('');
@@ -36,10 +36,8 @@ const PropertyFormView: React.FC<PropertyFormViewProps> = ({ setCurrentView }) =
     const [city, setCity] = useState('');
     
     // UI State
-    const [showBanner, setShowBanner] = useState(true);
-    const [showMore, setShowMore] = useState(false);
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [isSubmitted, setIsSubmitted] = useState(false);
+    const [showBanner, setShowBanner] = useState(!editingProperty);
+    const [showMore, setShowMore] = useState(!!editingProperty);
     
     // Advanced Fields
     const [waterRate, setWaterRate] = useState('0');
@@ -55,9 +53,35 @@ const PropertyFormView: React.FC<PropertyFormViewProps> = ({ setCurrentView }) =
     const [paymentInstructions, setPaymentInstructions] = useState('');
     const [ownerPhone, setOwnerPhone] = useState('');
     
-    // Recurring Bills State (Simple implementation for UI)
+    // Recurring Bills State
     const [billType, setBillType] = useState('');
     const [billAmount, setBillAmount] = useState('');
+
+    // Pre-fill form if editing
+    useEffect(() => {
+        if (editingProperty) {
+            setPropertyName(editingProperty.name);
+            setUnitCount(editingProperty.units.toString());
+            setCity(editingProperty.city || '');
+            setStreetName(editingProperty.streetName || '');
+            setWaterRate(editingProperty.waterRate?.toString() || '0');
+            setElectricityRate(editingProperty.electricityRate?.toString() || '0');
+            setMpesaType(editingProperty.mpesaType || 'Paybill');
+            setPaybillNumber(editingProperty.paybillNumber || '');
+            setPenaltyType(editingProperty.penaltyType || '');
+            setTaxRate(editingProperty.taxRate?.toString() || '7.5');
+            setManagementFeeType(editingProperty.managementFeeType || '');
+            setCompanyName(editingProperty.companyName || '');
+            setNotes(editingProperty.notes || '');
+            setPaymentInstructions(editingProperty.paymentInstructions || '');
+            setOwnerPhone(editingProperty.ownerPhone || '');
+            
+            if (editingProperty.recurringBills && editingProperty.recurringBills.length > 0) {
+                setBillType(editingProperty.recurringBills[0].type);
+                setBillAmount(editingProperty.recurringBills[0].amount.toString());
+            }
+        }
+    }, [editingProperty]);
 
     const handleClear = () => {
         setPropertyName('');
@@ -77,27 +101,27 @@ const PropertyFormView: React.FC<PropertyFormViewProps> = ({ setCurrentView }) =
         setOwnerPhone('');
         setBillType('');
         setBillAmount('');
-        setIsSubmitted(false);
+        setEditingProperty(null);
     };
 
-    const handleAddProperty = () => {
+    const handleSubmit = () => {
         if (!propertyName) {
-            alert("Property Name is required");
+            addNotification("Property Name is required", 'error');
             return;
         }
 
         const recurringBills = billType ? [{ type: billType, amount: parseFloat(billAmount) || 0 }] : [];
 
-        addProperty({
-            id: Date.now(),
+        const propertyData = {
+            id: editingProperty ? editingProperty.id : Date.now(),
             name: propertyName,
             address: `${streetName ? streetName + ', ' : ''}${city}` || 'Unknown Location',
             city,
             streetName,
-            type: 'Residential', 
+            type: (editingProperty?.type || 'Residential') as 'Residential' | 'Commercial',
             units: parseInt(unitCount) || 0,
-            occupancy: 0,
-            imageUrl: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80',
+            occupancy: editingProperty ? editingProperty.occupancy : 0,
+            imageUrl: editingProperty?.imageUrl || 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80',
             waterRate: parseFloat(waterRate) || 0,
             electricityRate: parseFloat(electricityRate) || 0,
             mpesaType,
@@ -110,55 +134,38 @@ const PropertyFormView: React.FC<PropertyFormViewProps> = ({ setCurrentView }) =
             paymentInstructions,
             ownerPhone,
             recurringBills
-        });
+        };
 
-        setIsSubmitted(true);
-        setShowSuccessModal(true);
-        // Auto-dismiss success message but don't navigate
-        setTimeout(() => {
-            setShowSuccessModal(false);
-        }, 3000);
+        if (editingProperty) {
+            updateProperty(propertyData);
+            addNotification('Property updated successfully', 'success');
+        } else {
+            addProperty(propertyData);
+            addNotification('Property added successfully', 'success');
+        }
+
+        setEditingProperty(null);
+        setCurrentView('Properties');
     };
-
-    const handleUpdateProperty = () => {
-        // Mock update action
-        setShowSuccessModal(true);
-        setTimeout(() => {
-            setShowSuccessModal(false);
-        }, 3000);
-    }
 
     return (
         <div className="animate-fadeIn w-full max-w-5xl mx-auto pb-20 relative px-4 md:px-0">
-            {showSuccessModal && (
-                <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md animate-fadeIn">
-                    <div className="bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-200">
-                        <div className="bg-[#DCEDC8] px-6 py-3 flex items-center border-b border-[#C5E1A5]">
-                            <svg className="w-5 h-5 text-[#33691E] mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                            <h3 className="text-sm font-semibold text-[#33691E]">Success</h3>
-                        </div>
-                        <div className="p-8 text-center bg-white">
-                            <p className="text-[#1B5E20] text-lg font-medium">
-                                {isSubmitted ? 'Property Added Successfully' : 'Property Updated Successfully'}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <div className="mb-4">
                 <button 
-                    onClick={() => setCurrentView('Getting Started')}
+                    onClick={() => {
+                        setEditingProperty(null);
+                        setCurrentView('Properties');
+                    }}
                     className="flex items-center text-[#1a237e] border border-[#1a237e] px-4 py-1.5 rounded text-sm font-medium hover:bg-blue-50 transition-colors bg-white"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
-                    Back
+                    Back to Properties
                 </button>
             </div>
 
-            <h2 className="text-2xl font-normal text-gray-700 mb-6">Property Form</h2>
+            <h2 className="text-2xl font-normal text-gray-700 mb-6">{editingProperty ? 'Edit Property' : 'New Property'}</h2>
 
             {showBanner && (
                 <div className="relative bg-white border border-gray-200 border-l-4 border-l-green-500 rounded-sm p-4 mb-8 shadow-sm flex items-center justify-between">
@@ -206,7 +213,7 @@ const PropertyFormView: React.FC<PropertyFormViewProps> = ({ setCurrentView }) =
                             onClick={() => setShowMore(!showMore)}
                             className="text-[#1a237e] text-sm font-medium hover:underline flex items-center focus:outline-none"
                         >
-                            {showMore ? 'Hide' : 'Show More'}
+                            {showMore ? 'Hide Advanced Options' : 'Show Advanced Options'}
                             <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ml-1 transition-transform ${showMore ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                             </svg>
@@ -380,59 +387,33 @@ const PropertyFormView: React.FC<PropertyFormViewProps> = ({ setCurrentView }) =
 
                 {/* Buttons */}
                 <div className="flex flex-col gap-3 mt-8 max-w-4xl mx-auto">
-                    {!isSubmitted ? (
-                        <>
-                            <button 
-                                onClick={handleAddProperty}
-                                className="w-full bg-[#000080] hover:bg-blue-900 text-white font-medium py-2.5 rounded-sm shadow-sm transition-colors flex justify-center items-center"
-                            >
+                    <button 
+                        onClick={handleSubmit}
+                        className="w-full bg-[#000080] hover:bg-blue-900 text-white font-medium py-2.5 rounded-sm shadow-sm transition-colors flex justify-center items-center"
+                    >
+                        {editingProperty ? (
+                            <>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Update Property
+                            </>
+                        ) : (
+                            <>
                                 <span className="mr-1">+</span> Add Property
-                            </button>
-                            <button 
-                                onClick={handleClear}
-                                className="w-full bg-white border border-[#1a237e] text-[#1a237e] font-medium py-2.5 rounded-sm shadow-sm hover:bg-gray-50 transition-colors"
-                            >
-                                Clear
-                            </button>
-                        </>
-                    ) : (
+                            </>
+                        )}
+                    </button>
+                    {!editingProperty && (
                         <button 
-                            onClick={handleUpdateProperty}
-                            className="w-full bg-[#000080] hover:bg-blue-900 text-white font-medium py-2.5 rounded-sm shadow-sm transition-colors flex justify-center items-center"
+                            onClick={handleClear}
+                            className="w-full bg-white border border-[#1a237e] text-[#1a237e] font-medium py-2.5 rounded-sm shadow-sm hover:bg-gray-50 transition-colors"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            Update Property
+                            Clear
                         </button>
                     )}
                 </div>
             </div>
-
-            {/* Bottom Navigation */}
-            {isSubmitted && (
-                <div className="mt-12 flex justify-between items-center border-t border-gray-200 pt-6">
-                    <button 
-                        onClick={() => setCurrentView('Getting Started')}
-                        className="flex items-center text-[#1a237e] border border-[#1a237e] px-4 py-1.5 rounded text-sm font-medium hover:bg-blue-50 transition-colors bg-white"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        Back
-                    </button>
-                    
-                    <button 
-                        onClick={() => setCurrentView('UnitForm')}
-                        className="flex items-center text-[#1a237e] border border-[#1a237e] px-4 py-1.5 rounded text-sm font-medium hover:bg-blue-50 transition-colors bg-white"
-                    >
-                        Add Unit(s)
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
-                    </button>
-                </div>
-            )}
         </div>
     );
 };

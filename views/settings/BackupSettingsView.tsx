@@ -7,10 +7,23 @@ interface BackupSettingsViewProps {
     setCurrentView: (view: View) => void;
 }
 
+interface BackupLog {
+    id: number;
+    date: string;
+    property: string;
+    size: string;
+    status: 'Completed' | 'Failed';
+}
+
 const BackupSettingsView: React.FC<BackupSettingsViewProps> = ({ setCurrentView }) => {
-    const { properties } = useData();
+    const { properties, tenants, units, invoices, payments, expenses } = useData();
     const [selectedProperty, setSelectedProperty] = useState('All Properties');
     const [isGenerating, setIsGenerating] = useState(false);
+    
+    // Simulated backup history (this would ideally come from backend logs)
+    const [backupHistory, setBackupHistory] = useState<BackupLog[]>([
+        { id: 1, date: '2025-10-20 14:30', property: 'All Properties', size: '2.4 MB', status: 'Completed' },
+    ]);
 
     const settingsMenu: { label: string; view: View }[] = [
         { label: 'General', view: 'General' },
@@ -27,11 +40,65 @@ const BackupSettingsView: React.FC<BackupSettingsViewProps> = ({ setCurrentView 
 
     const handleGenerateBackup = () => {
         setIsGenerating(true);
-        // Mock generation delay
+        
+        // Use timeout to allow UI to render 'Generating...' state
         setTimeout(() => {
+            const date = new Date();
+            const timestamp = date.toISOString().replace(/[:.]/g, '-');
+            const safePropertyName = selectedProperty.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            const filename = `backup-${safePropertyName}-${timestamp}.json`;
+            
+            // Collect real data from context
+            let backupData: any = {
+                meta: {
+                    generatedAt: date.toISOString(),
+                    scope: selectedProperty,
+                    version: "1.0"
+                },
+                properties: properties,
+                units: units,
+                tenants: tenants,
+                invoices: invoices,
+                payments: payments,
+                expenses: expenses
+            };
+
+            // Filter if specific property selected
+            if (selectedProperty !== 'All Properties') {
+                backupData.properties = properties.filter(p => p.name === selectedProperty);
+                backupData.units = units.filter(u => u.propertyName === selectedProperty);
+                backupData.tenants = tenants.filter(t => t.property === selectedProperty);
+                backupData.invoices = invoices.filter(i => i.property === selectedProperty);
+                backupData.payments = payments.filter(p => p.propertyName === selectedProperty);
+                backupData.expenses = expenses.filter(e => e.property === selectedProperty);
+            }
+
+            const jsonStr = JSON.stringify(backupData, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            // Trigger download
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            // Update local history log
+            const sizeKB = (blob.size / 1024).toFixed(2);
+            const newLog: BackupLog = {
+                id: Date.now(),
+                date: date.toLocaleString(),
+                property: selectedProperty,
+                size: `${sizeKB} KB`,
+                status: 'Completed'
+            };
+            
+            setBackupHistory([newLog, ...backupHistory]);
             setIsGenerating(false);
-            alert(`Backup generated successfully for ${selectedProperty}!`);
-        }, 2000);
+        }, 1000);
     };
 
     return (
@@ -57,19 +124,20 @@ const BackupSettingsView: React.FC<BackupSettingsViewProps> = ({ setCurrentView 
                 </div>
 
                 {/* Main Content */}
-                <div className="flex-1">
+                <div className="flex-1 space-y-6">
+                    {/* Generate Backup Card */}
                     <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
                         <div className="p-6 border-b border-gray-200">
                             <h2 className="text-lg font-medium text-gray-800">Back up your data</h2>
                             <p className="text-gray-500 text-sm mt-1">
-                                Generate a zip file of tenant, units, payments, invoices and utilities data
+                                Generate a downloadable JSON file containing your current system data.
                             </p>
                         </div>
                         
                         <div className="p-6 space-y-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Select Property
+                                    Select Scope
                                 </label>
                                 <select 
                                     value={selectedProperty}
@@ -88,7 +156,7 @@ const BackupSettingsView: React.FC<BackupSettingsViewProps> = ({ setCurrentView 
                             <button 
                                 onClick={handleGenerateBackup}
                                 disabled={isGenerating}
-                                className={`bg-[#5c54a0] hover:bg-[#4a438a] text-white font-medium py-2 px-4 rounded shadow-sm text-sm transition-colors flex items-center ${isGenerating ? 'opacity-75 cursor-not-allowed' : ''}`}
+                                className={`bg-[#1a237e] hover:bg-blue-900 text-white font-medium py-2 px-4 rounded shadow-sm text-sm transition-colors flex items-center ${isGenerating ? 'opacity-75 cursor-not-allowed' : ''}`}
                             >
                                 {isGenerating ? (
                                     <>
@@ -99,9 +167,49 @@ const BackupSettingsView: React.FC<BackupSettingsViewProps> = ({ setCurrentView 
                                         Generating...
                                     </>
                                 ) : (
-                                    'Generate Backup Files'
+                                    'Generate & Download'
                                 )}
                             </button>
+                        </div>
+                    </div>
+
+                    {/* Recent Backups Table */}
+                    <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                        <div className="p-4 border-b border-gray-200">
+                            <h3 className="font-medium text-gray-800">Recent Backups (Session)</h3>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-sm text-left">
+                                <thead className="bg-gray-50 text-gray-500 font-medium">
+                                    <tr>
+                                        <th className="px-6 py-3">Date</th>
+                                        <th className="px-6 py-3">Scope</th>
+                                        <th className="px-6 py-3">Size</th>
+                                        <th className="px-6 py-3">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {backupHistory.map((log) => (
+                                        <tr key={log.id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap text-gray-700">{log.date}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-gray-600">{log.property}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-gray-500 font-mono text-xs">{log.size}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                    {log.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {backupHistory.length === 0 && (
+                                        <tr>
+                                            <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                                                No backups generated in this session.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

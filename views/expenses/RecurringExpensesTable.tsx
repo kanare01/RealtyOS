@@ -1,10 +1,26 @@
 
 import React from 'react';
-import { useData } from '../../contexts/DataContext';
+import { RecurringExpense } from '../../types';
 import Badge from '../../components/shared/Badge';
+import { useData } from '../../contexts/DataContext';
 
-const RecurringExpensesTable: React.FC = () => {
-    const { recurringExpenses } = useData();
+interface RecurringExpensesTableProps {
+    expenses: RecurringExpense[];
+}
+
+const RecurringExpensesTable: React.FC<RecurringExpensesTableProps> = ({ expenses }) => {
+    const { updateRecurringExpense, deleteRecurringExpense } = useData();
+
+    const handleToggleStatus = (expense: RecurringExpense) => {
+        const newStatus = expense.status === 'Active' ? 'Stopped' : 'Active';
+        updateRecurringExpense({ ...expense, status: newStatus });
+    };
+
+    const handleDelete = (id: number) => {
+        if (confirm("Are you sure you want to delete this recurring schedule?")) {
+            deleteRecurringExpense(id);
+        }
+    };
 
     return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -32,7 +48,7 @@ const RecurringExpensesTable: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                       {recurringExpenses.map(expense => (
+                       {expenses.map(expense => (
                            <tr key={expense.id} className="hover:bg-gray-50 transition-colors">
                                <td className="px-6 py-4 whitespace-nowrap">
                                    <div className="text-gray-900 font-medium">{expense.description}</div>
@@ -50,15 +66,25 @@ const RecurringExpensesTable: React.FC = () => {
                                    {expense.amount.toLocaleString()}
                                </td>
                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                   <button className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                                   <button className="text-gray-500 hover:text-gray-700">Pause</button>
+                                   <button 
+                                        onClick={() => handleToggleStatus(expense)} 
+                                        className={`${expense.status === 'Active' ? 'text-yellow-600 hover:text-yellow-800' : 'text-green-600 hover:text-green-800'} mr-3`}
+                                    >
+                                        {expense.status === 'Active' ? 'Pause' : 'Resume'}
+                                    </button>
+                                    <button 
+                                        onClick={() => handleDelete(expense.id)} 
+                                        className="text-red-600 hover:text-red-900"
+                                    >
+                                        Delete
+                                    </button>
                                </td>
                            </tr>
                        ))}
-                       {recurringExpenses.length === 0 && (
+                       {expenses.length === 0 && (
                            <tr>
                                <td colSpan={7} className="px-6 py-10 text-center text-gray-500">
-                                   No recurring expenses found.
+                                   No recurring expenses found matching your criteria.
                                </td>
                            </tr>
                        )}
@@ -66,7 +92,7 @@ const RecurringExpensesTable: React.FC = () => {
                  </table>
             </div>
              <div className="flex justify-between items-center p-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
-                <span className="text-sm text-gray-500">Showing {recurringExpenses.length} records</span>
+                <span className="text-sm text-gray-500">Showing {expenses.length} records</span>
             </div>
         </div>
     );

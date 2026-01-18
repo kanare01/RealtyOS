@@ -1,10 +1,21 @@
 
 import React from 'react';
-import { useData } from '../../contexts/DataContext';
+import { Expense } from '../../types';
 import Badge from '../../components/shared/Badge';
+import { useData } from '../../contexts/DataContext';
 
-const ExpensesTable: React.FC = () => {
-    const { expenses } = useData();
+interface ExpensesTableProps {
+    expenses: Expense[];
+}
+
+const ExpensesTable: React.FC<ExpensesTableProps> = ({ expenses }) => {
+    const { deleteExpense } = useData();
+
+    const handleDelete = (id: number) => {
+        if (confirm("Are you sure you want to delete this expense record?")) {
+            deleteExpense(id);
+        }
+    };
 
     return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -51,15 +62,19 @@ const ExpensesTable: React.FC = () => {
                                    {expense.amount.toLocaleString()}
                                </td>
                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                   <button className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                                   <button className="text-red-600 hover:text-red-900">Delete</button>
+                                   <button 
+                                        onClick={() => handleDelete(expense.id)} 
+                                        className="text-red-600 hover:text-red-900"
+                                    >
+                                        Delete
+                                    </button>
                                </td>
                            </tr>
                        ))}
                        {expenses.length === 0 && (
                            <tr>
                                <td colSpan={6} className="px-6 py-10 text-center text-gray-500">
-                                   No expenses recorded yet.
+                                   No expenses found matching your criteria.
                                </td>
                            </tr>
                        )}
