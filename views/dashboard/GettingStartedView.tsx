@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
 import { View } from '../../types';
 import { useData } from '../../contexts/DataContext';
 
@@ -8,39 +8,55 @@ interface GettingStartedViewProps {
 }
 
 const Step: React.FC<{
+    stepNumber: number;
     title: string;
     description: string;
     completedPercentage: number;
     italicSuffix?: string;
-    onContinue?: () => void;
-}> = ({ title, description, completedPercentage, italicSuffix, onContinue }) => {
+    onAction: () => void;
+    actionLabel: string;
+    isLocked?: boolean;
+}> = ({ stepNumber, title, description, completedPercentage, italicSuffix, onAction, actionLabel, isLocked }) => {
+    const isComplete = completedPercentage === 100;
+
     return (
-        <div className="flex flex-col md:flex-row md:items-center justify-between py-6 border-b border-gray-100 last:border-0 gap-4">
-            <div>
-                <h3 className="text-lg font-medium text-gray-800">{title}</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                    {description} {italicSuffix && <span className="italic">{italicSuffix}</span>}
-                </p>
+        <div className={`flex flex-col md:flex-row md:items-center justify-between py-6 border-b border-gray-100 last:border-0 gap-4 ${isLocked ? 'opacity-50 pointer-events-none' : ''}`}>
+            <div className="flex gap-4">
+                <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${isComplete ? 'bg-green-100 text-green-600' : 'bg-blue-50 text-[#1a237e]'}`}>
+                    {isComplete ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                    ) : stepNumber}
+                </div>
+                <div>
+                    <h3 className="text-lg font-medium text-gray-800">{title}</h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                        {description} {italicSuffix && <span className="italic text-gray-400">{italicSuffix}</span>}
+                    </p>
+                </div>
             </div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-6 pl-14 md:pl-0">
                 <div className="flex flex-col items-end min-w-[100px]">
-                    <div className="w-24 bg-gray-200 rounded-full h-3 mb-1">
+                    <div className="w-24 bg-gray-200 rounded-full h-2 mb-1">
                         <div 
-                            className="bg-[#1a237e] h-3 rounded-full transition-all duration-1000 ease-out" 
+                            className={`h-2 rounded-full transition-all duration-1000 ease-out ${isComplete ? 'bg-green-500' : 'bg-[#1a237e]'}`} 
                             style={{ width: `${completedPercentage}%` }}
                         ></div>
                     </div>
-                    <span className="text-xs text-gray-500 font-medium mt-1">{completedPercentage}% completed</span>
+                    <span className={`text-xs font-medium mt-1 ${isComplete ? 'text-green-600' : 'text-gray-500'}`}>
+                        {isComplete ? 'Completed' : 'Pending'}
+                    </span>
                 </div>
                 <button 
-                    onClick={onContinue}
-                    className={`px-6 py-2 text-sm font-medium border rounded transition-colors whitespace-nowrap ${
-                        completedPercentage === 100 
-                        ? 'text-green-600 border-green-600 hover:bg-green-50 bg-white'
-                        : 'text-[#1a237e] border-[#1a237e] hover:bg-blue-50 bg-white'
+                    onClick={onAction}
+                    className={`px-6 py-2 text-sm font-medium border rounded transition-colors whitespace-nowrap min-w-[140px] ${
+                        isComplete 
+                        ? 'text-green-700 border-green-200 hover:bg-green-50 bg-white'
+                        : 'text-white bg-[#1a237e] hover:bg-blue-900 border-transparent shadow-sm'
                     }`}
                 >
-                    {completedPercentage === 100 ? 'Add More' : 'Continue'}
+                    {isComplete ? 'Add Another' : actionLabel}
                 </button>
             </div>
         </div>
@@ -49,14 +65,9 @@ const Step: React.FC<{
 
 const GettingStartedView: React.FC<GettingStartedViewProps> = ({ setCurrentView }) => {
     const { properties, tenants, units } = useData();
-    const [stats, setStats] = useState({
-        propertyProgress: 0,
-        unitProgress: 0,
-        tenantProgress: 0,
-        totalProgress: 0
-    });
 
-    useEffect(() => {
+    // Reactive progress calculation
+    const progress = useMemo(() => {
         const hasProperties = properties.length > 0;
         const hasUnits = units.length > 0;
         const hasTenants = tenants.length > 0;
@@ -65,63 +76,98 @@ const GettingStartedView: React.FC<GettingStartedViewProps> = ({ setCurrentView 
         const uProg = hasUnits ? 100 : 0;
         const tProg = hasTenants ? 100 : 0;
 
-        setStats({
+        return {
             propertyProgress: pProg,
             unitProgress: uProg,
             tenantProgress: tProg,
             totalProgress: Math.round((pProg + uProg + tProg) / 3)
-        });
+        };
     }, [properties, units, tenants]);
+
+    // Helper for navigation
+    const handleNav = (view: View) => {
+        if (setCurrentView) setCurrentView(view);
+    };
 
     return (
         <div className="animate-fadeIn max-w-5xl mx-auto pb-10">
-            <h2 className="text-2xl font-medium text-gray-700 mb-6">Getting Started</h2>
-            
-            <div className="bg-white border-b border-gray-200 pb-8 mb-6">
-                <p className="text-gray-500 text-sm mb-4">Take a few minutes to set up your account.</p>
-                <div className="w-full bg-gray-200 rounded-full h-6 mb-2">
-                    <div 
-                        className="bg-[#1a237e] h-6 rounded-full transition-all duration-1000 ease-out flex items-center justify-end pr-2" 
-                        style={{ width: `${stats.totalProgress}%` }}
+            <div className="flex justify-between items-end mb-6">
+                <div>
+                    <h2 className="text-2xl font-medium text-gray-700">Getting Started</h2>
+                    <p className="text-sm text-gray-500 mt-1">Complete these 3 steps to set up your account.</p>
+                </div>
+                {progress.totalProgress > 0 && (
+                    <button 
+                        onClick={() => handleNav('Dashboard')}
+                        className="text-[#1a237e] text-sm font-medium hover:underline flex items-center"
                     >
-                        {stats.totalProgress > 10 && <span className="text-white text-xs font-bold">{stats.totalProgress}%</span>}
+                        Skip to Dashboard <span className="ml-1">&rarr;</span>
+                    </button>
+                )}
+            </div>
+            
+            <div className="bg-white border-b border-gray-200 pb-8 mb-6 rounded-t-lg">
+                <div className="px-6 pt-6">
+                    <div className="flex justify-between text-sm text-gray-600 mb-2">
+                        <span>Setup Progress</span>
+                        <span className="font-bold text-[#1a237e]">{progress.totalProgress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                        <div 
+                            className="bg-gradient-to-r from-blue-600 to-[#1a237e] h-4 rounded-full transition-all duration-1000 ease-out shadow-inner" 
+                            style={{ width: `${progress.totalProgress}%` }}
+                        >
+                        </div>
                     </div>
                 </div>
-                {stats.totalProgress === 0 && <p className="text-sm text-gray-500">0% completed</p>}
             </div>
 
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
                 <Step 
+                    stepNumber={1}
                     title="Add Property" 
-                    description="Add your property name and location to start managing." 
-                    italicSuffix={`(Total Properties: ${properties.length})`}
-                    completedPercentage={stats.propertyProgress}
-                    onContinue={() => setCurrentView && setCurrentView('PropertyForm')}
-                />
-                <Step 
-                    title="Add Units" 
-                    description="Add units to your property." 
-                    italicSuffix={units.length > 0 ? `(Total Units: ${units.length})` : "(Add a property first)"}
-                    completedPercentage={stats.unitProgress}
-                    onContinue={() => setCurrentView && setCurrentView('UnitForm')}
-                />
-                <Step 
-                    title="Add Tenants" 
-                    description="Add tenants to the units you created." 
-                    italicSuffix={tenants.length > 0 ? `(Total Tenants: ${tenants.length})` : ""}
-                    completedPercentage={stats.tenantProgress}
-                    onContinue={() => setCurrentView && setCurrentView('TenantForm')}
+                    description="Register your first building or estate." 
+                    italicSuffix={properties.length > 0 ? `(${properties.length} added)` : ""}
+                    completedPercentage={progress.propertyProgress}
+                    onAction={() => handleNav('PropertyForm')}
+                    actionLabel="Create Property"
                 />
                 
-                <div className="flex justify-end mt-6 pt-4">
+                <Step 
+                    stepNumber={2}
+                    title="Add Units" 
+                    description="Define the rentable units within your property." 
+                    italicSuffix={units.length > 0 ? `(${units.length} added)` : ""}
+                    completedPercentage={progress.unitProgress}
+                    onAction={() => handleNav('UnitForm')}
+                    actionLabel="Add Units"
+                    isLocked={properties.length === 0}
+                />
+                
+                <Step 
+                    stepNumber={3}
+                    title="Add Tenants" 
+                    description="Onboard tenants and assign them to units." 
+                    italicSuffix={tenants.length > 0 ? `(${tenants.length} active)` : ""}
+                    completedPercentage={progress.tenantProgress}
+                    onAction={() => handleNav('TenantForm')}
+                    actionLabel="Add Tenant"
+                    isLocked={units.length === 0}
+                />
+            </div>
+            
+            {progress.totalProgress === 100 && (
+                <div className="mt-8 p-4 bg-green-50 border border-green-200 rounded-lg text-center animate-fadeIn">
+                    <h3 className="text-green-800 font-bold text-lg mb-2">🎉 You're all set!</h3>
+                    <p className="text-green-700 mb-4">You have successfully configured the basics of RealtyOS.</p>
                     <button 
-                        onClick={() => setCurrentView && setCurrentView('Dashboard')}
-                        className="text-[#1a237e] text-sm font-medium hover:underline flex items-center"
+                        onClick={() => handleNav('Dashboard')}
+                        className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-8 rounded shadow-sm transition-colors"
                     >
-                        Skip Onboarding <span className="ml-1">&gt;</span>
+                        Go to Dashboard
                     </button>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

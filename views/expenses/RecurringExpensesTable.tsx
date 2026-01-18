@@ -9,7 +9,7 @@ interface RecurringExpensesTableProps {
 }
 
 const RecurringExpensesTable: React.FC<RecurringExpensesTableProps> = ({ expenses }) => {
-    const { updateRecurringExpense, deleteRecurringExpense } = useData();
+    const { updateRecurringExpense, deleteRecurringExpense, currentUser } = useData();
 
     const handleToggleStatus = (expense: RecurringExpense) => {
         const newStatus = expense.status === 'Active' ? 'Stopped' : 'Active';
@@ -72,12 +72,14 @@ const RecurringExpensesTable: React.FC<RecurringExpensesTableProps> = ({ expense
                                     >
                                         {expense.status === 'Active' ? 'Pause' : 'Resume'}
                                     </button>
-                                    <button 
-                                        onClick={() => handleDelete(expense.id)} 
-                                        className="text-red-600 hover:text-red-900"
-                                    >
-                                        Delete
-                                    </button>
+                                    {currentUser?.role === 'Admin' && (
+                                        <button 
+                                            onClick={() => handleDelete(expense.id)} 
+                                            className="text-red-600 hover:text-red-900"
+                                        >
+                                            Delete
+                                        </button>
+                                    )}
                                </td>
                            </tr>
                        ))}

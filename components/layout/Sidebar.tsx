@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View } from '../../types';
+import { useData } from '../../contexts/DataContext';
 
 interface NavItemConfig {
   view: View;
@@ -9,7 +10,7 @@ interface NavItemConfig {
   children?: Omit<NavItemConfig, 'children' | 'icon'>[];
 }
 
-const navConfig: NavItemConfig[] = [
+const baseNavConfig: NavItemConfig[] = [
   { view: 'Dashboard', label: 'Dashboard', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 11a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg> },
   {
     view: 'Financials', label: 'Financials', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M8.433 7.418c.158-.103.346-.196.552-.257.206-.061.417-.091.633-.091s.427.03.633.091c.206.061.394.154.552.257.158.103.304.226.438.368.133.142.24.304.32.482.08.178.12.37.12.568s-.04.39-.12.568c-.08.178-.187.34-.32.482c-.134.142-.28.265-.438.368c-.158.103-.346.196-.552-.257c-.206.061-.417.091-.633-.091s-.427-.03-.633-.091c-.206-.061-.394-.154-.552-.257c-.158-.103-.304-.226-.438-.368c-.133-.142-.24-.304-.32-.482c-.08-.178-.12-.37-.12-.568s.04-.39.12-.568c.08.178.187.34.32.482c.134.142.28-.265.438-.368zM10 3a1 1 0 011 1v1h1a1 1 0 011 1v12a1 1 0 01-1 1H7a1 1 0 01-1-1V6a1 1 0 011-1h1V4a1 1 0 011-1z" /></svg>,
@@ -51,6 +52,7 @@ const navConfig: NavItemConfig[] = [
         { view: 'Billing', label: 'Billing' },
         { view: 'MPESA Transactions', label: 'MPESA Transactions' },
         { view: 'Audit Trail', label: 'Audit Trail' },
+        { view: 'User Feedback', label: 'User Feedback' },
     ]
   },
   { view: 'Foundation', label: 'Foundation', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 01-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg> },
@@ -62,6 +64,7 @@ const Sidebar: React.FC<{
   isCollapsed?: boolean;
   toggleCollapse?: () => void;
 }> = ({ currentView, setCurrentView, isCollapsed = false, toggleCollapse }) => {
+  const { currentUser } = useData();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
   const toggleMenu = (label: string) => {
@@ -76,6 +79,34 @@ const Sidebar: React.FC<{
   const isChildActive = (item: NavItemConfig) => {
     return item.children?.some(child => child.view === currentView) ?? false;
   };
+
+  const filteredNavConfig = useMemo(() => {
+    return baseNavConfig.map(item => {
+        // Filter sub-items if present
+        if (item.children) {
+            let allowedChildren = item.children;
+            
+            // Only Admins see Audit Trail, Backup, Team
+            if (currentUser?.role !== 'Admin') {
+                allowedChildren = allowedChildren.filter(child => 
+                    !['Audit Trail', 'Backup', 'Team', 'System Status'].includes(child.label)
+                );
+            }
+            
+            // Hide Technical Foundation from Agents
+            if (currentUser?.role === 'Agent') {
+                 if (item.view === 'Foundation') return null;
+            }
+
+            return { ...item, children: allowedChildren };
+        }
+        
+        // Hide Foundation entirely for agents if it's a top level item (redundant check if nested, but safe)
+        if (currentUser?.role === 'Agent' && item.view === 'Foundation') return null;
+
+        return item;
+    }).filter(Boolean) as NavItemConfig[];
+  }, [currentUser]);
   
   const NavButton: React.FC<{item: NavItemConfig}> = ({ item }) => {
     const isActive = currentView === item.view;
@@ -118,7 +149,7 @@ const Sidebar: React.FC<{
 
       <nav className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-blue-900 scrollbar-track-transparent">
         <ul className="space-y-1">
-          {navConfig.map(item => (
+          {filteredNavConfig.map(item => (
             <li key={item.label}>
               {item.children ? (
                 <>

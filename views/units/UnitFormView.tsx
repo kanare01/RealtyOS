@@ -7,7 +7,7 @@ interface UnitFormViewProps {
     setCurrentView: (view: View) => void;
 }
 
-// Helper component moved outside
+// Helper component
 const FormRow = ({ label, subLabel, children, helpIcon = false }: { label: string, subLabel?: string, children?: React.ReactNode, helpIcon?: boolean }) => (
     <div className="flex flex-col md:flex-row md:items-start mb-6">
         <div className="w-full md:w-1/3 text-left md:text-right pr-6 mb-2 md:mb-0 pt-2.5">
@@ -28,7 +28,7 @@ const FormRow = ({ label, subLabel, children, helpIcon = false }: { label: strin
 );
 
 const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
-    const { properties, addUnit, addUnits, editingUnit, updateUnit, setEditingUnit, addNotification } = useData();
+    const { properties, addUnit, addUnits, editingUnit, updateUnit, setEditingUnit, addNotification, units } = useData();
     
     // Form Fields
     const [selectedProperty, setSelectedProperty] = useState('');
@@ -51,7 +51,6 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
     const [billAmount, setBillAmount] = useState('');
     
     const [notes, setNotes] = useState('');
-    
     const [isSubmitted, setIsSubmitted] = useState(false);
 
     // Initialize selected property and pre-fill if editing
@@ -68,7 +67,7 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
                 setBillType(editingUnit.recurringBills[0].type);
                 setBillAmount(editingUnit.recurringBills[0].amount.toString());
             }
-            setIsBulkMode(false); // Can't bulk edit in this form structure yet
+            setIsBulkMode(false); 
         } else if (properties.length > 0 && !selectedProperty) {
             setSelectedProperty(properties[0].name);
         }
@@ -92,7 +91,7 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
         setIsSubmitted(false);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!selectedProperty) {
             addNotification("Please select a property", 'error');
             return;
@@ -104,7 +103,7 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
 
         // --- Editing Logic ---
         if (editingUnit) {
-             updateUnit({
+             await updateUnit({
                 ...editingUnit,
                 propertyId: propObj?.id || editingUnit.propertyId,
                 propertyName: selectedProperty,
@@ -150,7 +149,7 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
             for (let i = start; i <= end; i++) {
                 const name = `${prefix}${i}`;
                 unitsToAdd.push({
-                    id: Date.now() + i, // Unique ID generation strategy
+                    id: Date.now() + i,
                     propertyId: propObj?.id || 0,
                     propertyName: selectedProperty,
                     name: name,
@@ -163,7 +162,7 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
                     recurringBills
                 });
             }
-            addUnits(unitsToAdd);
+            await addUnits(unitsToAdd);
             addNotification(`${count} units created successfully`, 'success');
 
         } else {
@@ -173,7 +172,7 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
                 return;
             }
 
-            addUnit({
+            await addUnit({
                 id: Date.now(),
                 propertyId: propObj?.id || 0,
                 propertyName: selectedProperty,
@@ -197,7 +196,6 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
         setPrefix('');
         setStartNumber('');
         setEndNumber('');
-        // Keep rent/property/category selected for ease of entry
         setIsSubmitted(false);
     };
 
@@ -213,6 +211,29 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
         setEditingUnit(null);
         setCurrentView('Units');
     };
+
+    // --- Empty State Check ---
+    if (properties.length === 0) {
+        return (
+            <div className="w-full max-w-3xl mx-auto mt-20 text-center animate-fadeIn">
+                <div className="bg-white border border-gray-200 rounded-lg p-10 shadow-sm">
+                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#1a237e]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">No Properties Found</h2>
+                    <p className="text-gray-500 mb-6">You need to add a property before you can create units.</p>
+                    <button 
+                        onClick={() => setCurrentView('PropertyForm')}
+                        className="bg-[#1a237e] text-white px-6 py-2.5 rounded font-medium hover:bg-blue-900 transition-colors"
+                    >
+                        Create Property
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="animate-fadeIn w-full max-w-5xl mx-auto pb-20 relative px-4 md:px-0">
@@ -237,7 +258,6 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
                         onChange={(e) => setSelectedProperty(e.target.value)}
                         className="w-full border-gray-200 rounded-sm shadow-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm p-2 bg-gray-50 border"
                     >
-                        {properties.length === 0 && <option value="">No properties available</option>}
                         {properties.map(prop => (
                             <option key={prop.id} value={prop.name}>{prop.name}</option>
                         ))}

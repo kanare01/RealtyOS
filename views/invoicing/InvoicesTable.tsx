@@ -9,7 +9,7 @@ interface InvoicesTableProps {
 }
 
 const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices }) => {
-    const { deleteInvoice } = useData();
+    const { deleteInvoice, currentUser } = useData();
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [activeDropdownId, setActiveDropdownId] = useState<number | null>(null);
 
@@ -179,18 +179,25 @@ const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices }) => {
                                                 <>
                                                     <div className="fixed inset-0 z-10" onClick={() => setActiveDropdownId(null)}></div>
                                                     <div className="absolute right-0 top-8 w-32 bg-white border border-gray-200 rounded shadow-xl z-20 overflow-hidden">
-                                                        <button 
-                                                            onClick={() => handleVoid(invoice)}
-                                                            className="block w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-100"
-                                                        >
-                                                            Void / Cancel
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleDelete(invoice.id)}
-                                                            className="block w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50"
-                                                        >
-                                                            Delete
-                                                        </button>
+                                                        {currentUser?.role === 'Admin' && (
+                                                            <>
+                                                                <button 
+                                                                    onClick={() => handleVoid(invoice)}
+                                                                    className="block w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-100"
+                                                                >
+                                                                    Void / Cancel
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleDelete(invoice.id)}
+                                                                    className="block w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50"
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                        {currentUser?.role !== 'Admin' && (
+                                                            <div className="px-4 py-2 text-xs text-gray-400 italic">No actions available</div>
+                                                        )}
                                                     </div>
                                                 </>
                                             )}

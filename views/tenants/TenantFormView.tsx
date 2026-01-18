@@ -28,7 +28,7 @@ const FormRow = ({ label, subLabel, children, helpIcon = false, alignStart = fal
 );
 
 const TenantFormView: React.FC<TenantFormViewProps> = ({ setCurrentView }) => {
-    const { properties, getUnitsByProperty, addTenant, updateTenant, addNotification, uploadFile } = useData();
+    const { properties, getUnitsByProperty, addTenant, updateTenant, addNotification, uploadFile, units } = useData();
     
     // Core Fields
     const [property, setProperty] = useState('');
@@ -200,6 +200,29 @@ const TenantFormView: React.FC<TenantFormViewProps> = ({ setCurrentView }) => {
     };
     const addBankPayer = () => setBankPayers([...bankPayers, '']);
 
+    // --- Empty State Check ---
+    if (units.length === 0) {
+        return (
+            <div className="w-full max-w-3xl mx-auto mt-20 text-center animate-fadeIn">
+                <div className="bg-white border border-gray-200 rounded-lg p-10 shadow-sm">
+                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#1a237e]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">No Units Available</h2>
+                    <p className="text-gray-500 mb-6">You need to add units before you can register tenants.</p>
+                    <button 
+                        onClick={() => setCurrentView('UnitForm')}
+                        className="bg-[#1a237e] text-white px-6 py-2.5 rounded font-medium hover:bg-blue-900 transition-colors"
+                    >
+                        Add Units
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="animate-fadeIn w-full max-w-5xl mx-auto pb-20 relative px-4 md:px-0">
             <div className="mb-4">
@@ -237,16 +260,16 @@ const TenantFormView: React.FC<TenantFormViewProps> = ({ setCurrentView }) => {
                     </select>
                 </FormRow>
 
-                <FormRow label="Select Unit" subLabel={availableUnits.length === 0 ? "If the unit is not available in the list, please go to the units page to add it." : ""}>
+                <FormRow label="Select Unit" subLabel={availableUnits.length === 0 ? "No vacant units found in this property. Go to Units page to add more." : ""}>
                     <select 
                         value={unit}
                         onChange={(e) => setUnit(e.target.value)}
                         className="w-full border-gray-200 rounded-sm shadow-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm p-2 bg-gray-50 border"
-                        disabled={!property}
+                        disabled={!property || availableUnits.length === 0}
                     >
                         <option value="">Select Unit</option>
                         {availableUnits.map(u => (
-                            <option key={u.id} value={u.name}>{u.name} - {u.rentAmount}</option>
+                            <option key={u.id} value={u.name}>{u.name} - {u.rentAmount.toLocaleString()}</option>
                         ))}
                     </select>
                 </FormRow>
@@ -541,8 +564,8 @@ const TenantFormView: React.FC<TenantFormViewProps> = ({ setCurrentView }) => {
                         <>
                             <button 
                                 onClick={() => handleSaveTenant(isEditing)}
-                                disabled={isProcessing}
-                                className={`w-full bg-[#5c54a0] hover:bg-blue-900 text-white font-medium py-2.5 rounded-sm shadow-sm transition-colors flex justify-center items-center ${isProcessing ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                disabled={isProcessing || availableUnits.length === 0}
+                                className={`w-full bg-[#5c54a0] hover:bg-blue-900 text-white font-medium py-2.5 rounded-sm shadow-sm transition-colors flex justify-center items-center ${isProcessing || availableUnits.length === 0 ? 'opacity-70 cursor-not-allowed' : ''}`}
                             >
                                 {isProcessing ? (
                                     <span>Processing...</span>

@@ -9,7 +9,7 @@ interface PropertiesTableProps {
 }
 
 const PropertiesTable: React.FC<PropertiesTableProps> = ({ properties, setCurrentView }) => {
-    const { deleteProperty, setEditingProperty } = useData();
+    const { deleteProperty, setEditingProperty, currentUser } = useData();
     const [activeDropdownId, setActiveDropdownId] = useState<number | null>(null);
 
     const toggleDropdown = (id: number) => {
@@ -102,12 +102,14 @@ const PropertiesTable: React.FC<PropertiesTableProps> = ({ properties, setCurren
                                                     >
                                                         Edit
                                                     </button>
-                                                    <button 
-                                                        onClick={() => handleDelete(property.id, property.name)}
-                                                        className="block w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50"
-                                                    >
-                                                        Delete
-                                                    </button>
+                                                    {currentUser?.role === 'Admin' && (
+                                                        <button 
+                                                            onClick={() => handleDelete(property.id, property.name)}
+                                                            className="block w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </>
                                         )}

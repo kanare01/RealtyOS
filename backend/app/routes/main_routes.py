@@ -430,7 +430,7 @@ def update_tenant(id):
 
 @main_bp.route('/tenants/<int:id>', methods=['DELETE'])
 @jwt_required()
-@manager_required
+@admin_required
 def delete_tenant(id):
     tenant = Tenant.query.get_or_404(id)
     unit = Unit.query.get(tenant.unit_id)
@@ -499,7 +499,7 @@ def update_invoice(id):
 
 @main_bp.route('/invoices/<int:id>', methods=['DELETE'])
 @jwt_required()
-@manager_required
+@admin_required
 def delete_invoice(id):
     inv = Invoice.query.get_or_404(id)
     if inv.status == 'Unpaid' and inv.tenant:

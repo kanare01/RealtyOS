@@ -39,6 +39,7 @@ export interface Notification {
 
 interface DataContextType {
     isLoading: boolean;
+    currentUser: TeamMember | null;
     properties: Property[];
     tenants: Tenant[];
     units: Unit[];
@@ -155,6 +156,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     // App State
     const [isLoading, setIsLoading] = useState(true);
+    const [currentUser, setCurrentUser] = useState<TeamMember | null>(null);
 
     // Data State
     const [properties, setProperties] = useState<Property[]>([]);
@@ -220,33 +222,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
             // 401 Unauthorized
             if (response.status === 401) {
-                console.error("Unauthorized: Session expired or invalid token.");
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                if (window.location.pathname !== '/') {
-                    window.location.reload(); 
-                }
+                console.warn("Unauthorized request to", url);
                 return null; 
             }
 
             // 403 Forbidden
             if (response.status === 403) {
-                addNotification("Access Denied: You do not have permission to perform this action.", 'error');
+                // Silently fail for bulk fetching to prevent notification spam
+                // Explicit actions will catch this in their own try/catch blocks usually or via the non-GET check below
                 return null;
             }
 
             if (!response.ok) {
-                // Try to parse JSON error, fall back to status text if HTML/Text returned
                 let errorMessage = response.statusText || 'Unknown Error';
                 try {
                     const errorData = await response.json();
                     errorMessage = errorData.message || errorData.error || errorData.description || errorMessage;
                 } catch (e) {
-                    // Response was not JSON (e.g., 502 Bad Gateway HTML)
                     console.error("Non-JSON error response received");
                 }
                 
-                if (response.status !== 404 || options.method !== 'GET') {
+                // Don't show notifications for background data syncs to avoid spam
+                if (options.method !== 'GET') {
                     addNotification(`${errorMessage}`, 'error');
                 }
                 return null;
@@ -260,23 +257,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 return fetchWithRetry(url, options, retries - 1, backoff * 2);
             }
             console.error(`Fetch error for ${url}:`, error);
-            addNotification('Network error. Please check your connection.', 'error');
+            if (options.method !== 'GET') {
+                addNotification('Network error. Please check your connection.', 'error');
+            }
             return null;
         }
     };
 
-    // --- Initial Fetch ---
-    const fetchData = async (background = false) => {
-        if (!background) setIsLoading(true);
+    // --- Data Loading Logic ---
+    const loadData = async (userRole: string) => {
         try {
-            // Trigger background processing
-            await fetchWithRetry(`${API_BASE_URL}/recurring-expenses/process`, { method: 'POST' });
+            // Trigger background processing (fire and forget)
+            fetchWithRetry(`${API_BASE_URL}/recurring-expenses/process`, { method: 'POST' });
 
-            const [
-                propsRes, unitsRes, tenantsRes, invRes, payRes, expRes, recExpRes, 
-                maintRes, utilRes, groupRes, msgRes, mpesaRes, billRes, statsRes, chartRes,
-                teamRes, auditRes, feedbackRes
-            ] = await Promise.all([
+            // Common Endpoints for all users
+            const commonRequests = [
                 fetchWithRetry(`${API_BASE_URL}/properties`),
                 fetchWithRetry(`${API_BASE_URL}/units`),
                 fetchWithRetry(`${API_BASE_URL}/tenants`),
@@ -292,10 +287,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 fetchWithRetry(`${API_BASE_URL}/billing`),
                 fetchWithRetry(`${API_BASE_URL}/dashboard/stats`),
                 fetchWithRetry(`${API_BASE_URL}/reports/financials/monthly`),
-                fetchWithRetry(`${API_BASE_URL}/team-members`),
-                fetchWithRetry(`${API_BASE_URL}/audit-logs`),
-                fetchWithRetry(`${API_BASE_URL}/feedback`)
-            ]);
+            ];
+
+            const results = await Promise.all(commonRequests);
+
+            const [
+                propsRes, unitsRes, tenantsRes, invRes, payRes, expRes, recExpRes, 
+                maintRes, utilRes, groupRes, msgRes, mpesaRes, billRes, statsRes, chartRes
+            ] = results;
 
             if (propsRes) setProperties(await propsRes.json());
             if (unitsRes) setUnits(await unitsRes.json());
@@ -312,26 +311,82 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (billRes) setBilling(await billRes.json());
             if (statsRes) setDashboardStats(await statsRes.json());
             if (chartRes) setFinancialChartData(await chartRes.json());
-            if (teamRes) setTeamMembers(await teamRes.json());
-            if (auditRes) setAuditLogs(await auditRes.json());
-            if (feedbackRes) setFeedbacks(await feedbackRes.json());
+            
+            // Admin Only Endpoints
+            if (userRole === 'Admin') {
+                const [teamRes, auditRes, feedbackRes] = await Promise.all([
+                    fetchWithRetry(`${API_BASE_URL}/team-members`),
+                    fetchWithRetry(`${API_BASE_URL}/audit-logs`),
+                    fetchWithRetry(`${API_BASE_URL}/feedback`)
+                ]);
+                
+                if (teamRes) setTeamMembers(await teamRes.json());
+                if (auditRes) setAuditLogs(await auditRes.json());
+                if (feedbackRes) setFeedbacks(await feedbackRes.json());
+            }
 
         } catch (error) {
             console.error("Failed to fetch data from backend", error);
-        } finally {
-            if (!background) setIsLoading(false);
+            addNotification("Failed to load application data. Retrying...", "warning");
         }
     };
 
+    // --- Initialization ---
     useEffect(() => {
-        if (localStorage.getItem('token')) {
-            fetchData();
-        } else {
+        const init = async () => {
+            setIsLoading(true);
+            const token = localStorage.getItem('token');
+            let role = '';
+
+            if (token) {
+                // 1. Verify Session & Get Role
+                try {
+                    // Try local first for immediate UI
+                    const storedUser = localStorage.getItem('user');
+                    if(storedUser) {
+                        const u = JSON.parse(storedUser);
+                        setCurrentUser(u);
+                        role = u.role;
+                    }
+
+                    // Refresh profile from API to ensure valid token & role
+                    const meRes = await fetch(`${API_BASE_URL}/auth/me`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    if (meRes.ok) {
+                        const user = await meRes.json();
+                        setCurrentUser(user);
+                        localStorage.setItem('user', JSON.stringify(user));
+                        role = user.role;
+                        
+                        // 2. Fetch Data based on confirmed Role
+                        await loadData(role);
+                    } else if (meRes.status === 401) {
+                        // Token expired
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        window.location.reload();
+                        return; 
+                    }
+                } catch (e) {
+                    console.error("Auth init error", e);
+                    // Fallback to what we have or try loading data anyway if we have a role
+                    if (role) await loadData(role);
+                }
+            }
             setIsLoading(false);
-        }
+        };
+
+        init();
     }, []);
 
-    const refreshData = () => fetchData(true);
+    // Exposed refresh function
+    const refreshData = () => {
+        if (currentUser) {
+            loadData(currentUser.role);
+        }
+    };
 
     // -- Entity Actions --
 
@@ -777,6 +832,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return (
         <DataContext.Provider value={{
             isLoading,
+            currentUser,
             properties, tenants, units, expenses, recurringExpenses, invoices, payments,
             utilities, maintenanceRequests, propertyGroupings, messages, lastCreatedUnits,
             mpesaTransactions, billing, dashboardStats, financialChartData, teamMembers, auditLogs,

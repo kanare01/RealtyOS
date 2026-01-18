@@ -28,7 +28,7 @@ const FormRow = ({ label, subLabel, children, helpIcon = false }: { label: strin
 );
 
 const PropertyFormView: React.FC<PropertyFormViewProps> = ({ setCurrentView }) => {
-    const { addProperty, updateProperty, editingProperty, setEditingProperty, addNotification } = useData();
+    const { addProperty, updateProperty, editingProperty, setEditingProperty, addNotification, properties } = useData();
     
     // Core Fields
     const [propertyName, setPropertyName] = useState('');
@@ -38,6 +38,7 @@ const PropertyFormView: React.FC<PropertyFormViewProps> = ({ setCurrentView }) =
     // UI State
     const [showBanner, setShowBanner] = useState(!editingProperty);
     const [showMore, setShowMore] = useState(!!editingProperty);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     
     // Advanced Fields
     const [waterRate, setWaterRate] = useState('0');
@@ -104,11 +105,13 @@ const PropertyFormView: React.FC<PropertyFormViewProps> = ({ setCurrentView }) =
         setEditingProperty(null);
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!propertyName) {
             addNotification("Property Name is required", 'error');
             return;
         }
+
+        setIsSubmitting(true);
 
         const recurringBills = billType ? [{ type: billType, amount: parseFloat(billAmount) || 0 }] : [];
 
@@ -137,15 +140,24 @@ const PropertyFormView: React.FC<PropertyFormViewProps> = ({ setCurrentView }) =
         };
 
         if (editingProperty) {
-            updateProperty(propertyData);
-            addNotification('Property updated successfully', 'success');
+            await updateProperty(propertyData);
+            setEditingProperty(null);
+            setCurrentView('Properties');
         } else {
-            addProperty(propertyData);
-            addNotification('Property added successfully', 'success');
+            await addProperty(propertyData);
+            
+            // Smart Redirect: If this is the FIRST property, go to Add Units
+            if (properties.length === 0) {
+                if (confirm("Property created! Would you like to add units to it now?")) {
+                    setCurrentView('UnitForm');
+                } else {
+                    setCurrentView('Properties');
+                }
+            } else {
+                setCurrentView('Properties');
+            }
         }
-
-        setEditingProperty(null);
-        setCurrentView('Properties');
+        setIsSubmitting(false);
     };
 
     return (
@@ -389,9 +401,12 @@ const PropertyFormView: React.FC<PropertyFormViewProps> = ({ setCurrentView }) =
                 <div className="flex flex-col gap-3 mt-8 max-w-4xl mx-auto">
                     <button 
                         onClick={handleSubmit}
-                        className="w-full bg-[#000080] hover:bg-blue-900 text-white font-medium py-2.5 rounded-sm shadow-sm transition-colors flex justify-center items-center"
+                        disabled={isSubmitting}
+                        className={`w-full bg-[#000080] hover:bg-blue-900 text-white font-medium py-2.5 rounded-sm shadow-sm transition-colors flex justify-center items-center ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
-                        {editingProperty ? (
+                        {isSubmitting ? (
+                            'Processing...'
+                        ) : editingProperty ? (
                             <>
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />

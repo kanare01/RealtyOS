@@ -9,7 +9,7 @@ interface ExpensesTableProps {
 }
 
 const ExpensesTable: React.FC<ExpensesTableProps> = ({ expenses }) => {
-    const { deleteExpense } = useData();
+    const { deleteExpense, currentUser } = useData();
 
     const handleDelete = (id: number) => {
         if (confirm("Are you sure you want to delete this expense record?")) {
@@ -62,12 +62,14 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({ expenses }) => {
                                    {expense.amount.toLocaleString()}
                                </td>
                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                   <button 
-                                        onClick={() => handleDelete(expense.id)} 
-                                        className="text-red-600 hover:text-red-900"
-                                    >
-                                        Delete
-                                    </button>
+                                   {currentUser?.role === 'Admin' && (
+                                       <button 
+                                            onClick={() => handleDelete(expense.id)} 
+                                            className="text-red-600 hover:text-red-900"
+                                        >
+                                            Delete
+                                        </button>
+                                   )}
                                </td>
                            </tr>
                        ))}

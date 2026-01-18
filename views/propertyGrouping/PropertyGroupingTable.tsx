@@ -9,7 +9,7 @@ interface PropertyGroupingTableProps {
 }
 
 const PropertyGroupingTable: React.FC<PropertyGroupingTableProps> = ({ propertyGroupings, setCurrentView }) => {
-    const { deletePropertyGrouping, setEditingPropertyGrouping } = useData();
+    const { deletePropertyGrouping, setEditingPropertyGrouping, currentUser } = useData();
     const [activeDropdownId, setActiveDropdownId] = useState<number | null>(null);
 
     const toggleDropdown = (id: number) => {
@@ -73,7 +73,9 @@ const PropertyGroupingTable: React.FC<PropertyGroupingTableProps> = ({ propertyG
                                                 <div className="fixed inset-0 z-10" onClick={() => setActiveDropdownId(null)}></div>
                                                 <div className="absolute right-8 top-2 w-40 bg-white border border-gray-200 rounded shadow-xl z-20 overflow-hidden">
                                                     <button onClick={() => handleEdit(group)} className="block w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-100">Edit</button>
-                                                    <button onClick={() => handleDelete(group.id)} className="block w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50">Delete</button>
+                                                    {currentUser?.role === 'Admin' && (
+                                                        <button onClick={() => handleDelete(group.id)} className="block w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50">Delete</button>
+                                                    )}
                                                 </div>
                                             </>
                                         )}

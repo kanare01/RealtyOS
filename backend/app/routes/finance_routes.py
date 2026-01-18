@@ -6,7 +6,7 @@ from app.extensions import db
 from app.models import Payment, MpesaTransaction, Billing, Message, RecurringExpense, Property, Tenant, Unit
 from app.schemas import *
 from app.services import RecurringService, MpesaService
-from app.utils import manager_required, log_system_action
+from app.utils import manager_required, admin_required, log_system_action
 from datetime import datetime
 
 finance_bp = Blueprint('finance', __name__)
@@ -86,7 +86,7 @@ def update_payment(id):
 
 @finance_bp.route('/payments/<int:id>', methods=['DELETE'])
 @jwt_required()
-@manager_required
+@admin_required
 def delete_payment(id):
     pay = Payment.query.get_or_404(id)
     pay_id = pay.payment_id
