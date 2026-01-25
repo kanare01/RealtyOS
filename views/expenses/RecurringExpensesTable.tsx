@@ -1,13 +1,11 @@
 
 import React from 'react';
-import { RecurringExpense } from '../../types';
+import { useData } from '../../contexts/DataContext';
 import Badge from '../../components/shared/Badge';
 
-interface RecurringExpensesTableProps {
-    expenses: RecurringExpense[];
-}
+const RecurringExpensesTable: React.FC = () => {
+    const { recurringExpenses } = useData();
 
-const RecurringExpensesTable: React.FC<RecurringExpensesTableProps> = ({ expenses }) => {
     return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
             <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-lg">
@@ -34,7 +32,7 @@ const RecurringExpensesTable: React.FC<RecurringExpensesTableProps> = ({ expense
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                       {expenses.map(expense => (
+                       {recurringExpenses.map(expense => (
                            <tr key={expense.id} className="hover:bg-gray-50 transition-colors">
                                <td className="px-6 py-4 whitespace-nowrap">
                                    <div className="text-gray-900 font-medium">{expense.description}</div>
@@ -52,15 +50,15 @@ const RecurringExpensesTable: React.FC<RecurringExpensesTableProps> = ({ expense
                                    {expense.amount.toLocaleString()}
                                </td>
                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                   <button onClick={() => alert("Edit not implemented")} className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                                   <button onClick={() => alert("Pause not implemented")} className="text-gray-500 hover:text-gray-700">Pause</button>
+                                   <button className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                                   <button className="text-gray-500 hover:text-gray-700">Pause</button>
                                </td>
                            </tr>
                        ))}
-                       {expenses.length === 0 && (
+                       {recurringExpenses.length === 0 && (
                            <tr>
                                <td colSpan={7} className="px-6 py-10 text-center text-gray-500">
-                                   No recurring expenses found matching your criteria.
+                                   No recurring expenses found.
                                </td>
                            </tr>
                        )}
@@ -68,7 +66,7 @@ const RecurringExpensesTable: React.FC<RecurringExpensesTableProps> = ({ expense
                  </table>
             </div>
              <div className="flex justify-between items-center p-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
-                <span className="text-sm text-gray-500">Showing {expenses.length} records</span>
+                <span className="text-sm text-gray-500">Showing {recurringExpenses.length} records</span>
             </div>
         </div>
     );

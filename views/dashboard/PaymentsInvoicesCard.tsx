@@ -1,14 +1,8 @@
-
 import React from 'react';
 import DashboardCard from '../../components/shared/DashboardCard';
 import DonutChart from '../../components/shared/DonutChart';
 
-interface PaymentsInvoicesCardProps {
-    onRecordPayment?: () => void;
-    onViewDetails?: () => void;
-}
-
-const PaymentsInvoicesCard: React.FC<PaymentsInvoicesCardProps> = ({ onRecordPayment, onViewDetails }) => {
+const PaymentsInvoicesCard: React.FC = () => {
     return (
         <DashboardCard title="Payments and Invoices">
             <div className="flex items-center justify-between mb-4">
@@ -30,21 +24,13 @@ const PaymentsInvoicesCard: React.FC<PaymentsInvoicesCardProps> = ({ onRecordPay
                 </div>
                 <DonutChart percentage={0} />
                 <div>
-                     <button 
-                        onClick={onRecordPayment}
-                        className="px-4 py-2 text-sm font-semibold text-blue-600 bg-blue-100 hover:bg-blue-200 rounded-md transition-colors"
-                    >
+                     <button className="px-4 py-2 text-sm font-semibold text-blue-600 bg-blue-100 hover:bg-blue-200 rounded-md transition-colors">
                         Record Payments
                     </button>
                 </div>
             </div>
              <div className="text-left mt-4">
-                <button 
-                    onClick={onViewDetails}
-                    className="text-sm text-blue-600 hover:underline"
-                >
-                    View &rarr;
-                </button>
+                <a href="#" className="text-sm text-blue-600 hover:underline">View &rarr;</a>
             </div>
         </DashboardCard>
     );

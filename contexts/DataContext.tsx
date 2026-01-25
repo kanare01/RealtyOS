@@ -1,6 +1,37 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Property, Tenant, Unit, Expense, Invoice, Payment, RecurringExpense, Utility, MaintenanceRequest, PropertyGrouping, Message } from '../types';
+import { Property, Tenant, Unit, Expense, Invoice, Payment, RecurringExpense } from '../types';
+
+// Helper hook for LocalStorage
+function useLocalStorage<T>(key: string, initialValue: T) {
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    try {
+      if (typeof window === "undefined") {
+        return initialValue;
+      }
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.error(error);
+      return initialValue;
+    }
+  });
+
+  const setValue = (value: T | ((val: T) => T)) => {
+    try {
+      const valueToStore =
+        value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  return [storedValue, setValue] as const;
+}
 
 interface DataContextType {
     properties: Property[];
@@ -10,399 +41,102 @@ interface DataContextType {
     recurringExpenses: RecurringExpense[];
     invoices: Invoice[];
     payments: Payment[];
-    utilities: Utility[];
-    maintenanceRequests: MaintenanceRequest[];
-    propertyGroupings: PropertyGrouping[];
-    messages: Message[];
-    lastCreatedUnits: Unit[];
-    
-    // Property Actions
+    lastCreatedUnits: Unit[]; // Store temporarily for bulk add flow
     addProperty: (property: Property) => void;
-    updateProperty: (property: Property) => void;
-    deleteProperty: (id: number) => void;
-    editingProperty: Property | null;
-    setEditingProperty: (property: Property | null) => void;
-
-    // Unit Actions
     addUnit: (unit: Unit) => void;
     addUnits: (units: Unit[]) => void;
-    updateUnit: (unit: Unit) => void;
-    deleteUnit: (id: number) => void;
-    editingUnit: Unit | null;
-    setEditingUnit: (unit: Unit | null) => void;
-
-    // Tenant Actions
     addTenant: (tenant: Tenant) => void;
-    addTenants: (tenants: Tenant[]) => void; 
-    deleteTenant: (id: number) => void;
-
-    // Financial Actions
+    addTenants: (tenants: Tenant[]) => void; // Bulk add
     addExpense: (expense: Expense) => void;
     addRecurringExpense: (expense: RecurringExpense) => void;
     addInvoice: (invoice: Invoice) => void;
     addPayment: (payment: Payment) => void;
-    
-    // Utility Actions
-    addUtility: (utility: Utility) => void;
-    updateUtility: (utility: Utility) => void;
-    deleteUtility: (id: number) => void;
-
-    // Maintenance Actions
-    addMaintenanceRequest: (request: MaintenanceRequest) => void;
-    updateMaintenanceRequest: (request: MaintenanceRequest) => void;
-    deleteMaintenanceRequest: (id: number) => void;
-    editingMaintenanceRequest: MaintenanceRequest | null;
-    setEditingMaintenanceRequest: (request: MaintenanceRequest | null) => void;
-
-    // Grouping Actions
-    addPropertyGrouping: (group: PropertyGrouping) => void;
-    updatePropertyGrouping: (group: PropertyGrouping) => void;
-    deletePropertyGrouping: (id: number) => void;
-    editingPropertyGrouping: PropertyGrouping | null;
-    setEditingPropertyGrouping: (group: PropertyGrouping | null) => void;
-
-    // Message Actions
-    addMessage: (message: Message) => void;
-    addMessages: (messages: Message[]) => void;
-
-    // Helpers
     getUnitsByProperty: (propertyName: string) => Unit[];
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-const API_BASE = 'http://localhost:5000/api';
-
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    // Data State
-    const [properties, setProperties] = useState<Property[]>([]);
-    const [tenants, setTenants] = useState<Tenant[]>([]);
-    const [units, setUnits] = useState<Unit[]>([]);
-    const [expenses, setExpenses] = useState<Expense[]>([]);
-    const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>([]);
-    const [invoices, setInvoices] = useState<Invoice[]>([]);
-    const [payments, setPayments] = useState<Payment[]>([]);
-    const [utilities, setUtilities] = useState<Utility[]>([]);
-    const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
-    const [propertyGroupings, setPropertyGroupings] = useState<PropertyGrouping[]>([]);
-    const [messages, setMessages] = useState<Message[]>([]);
-    
+    const [properties, setProperties] = useLocalStorage<Property[]>('realtyos_properties', []);
+    const [tenants, setTenants] = useLocalStorage<Tenant[]>('realtyos_tenants', []);
+    const [units, setUnits] = useLocalStorage<Unit[]>('realtyos_units', []);
+    const [expenses, setExpenses] = useLocalStorage<Expense[]>('realtyos_expenses', []);
+    const [recurringExpenses, setRecurringExpenses] = useLocalStorage<RecurringExpense[]>('realtyos_recurring_expenses', []);
+    const [invoices, setInvoices] = useLocalStorage<Invoice[]>('realtyos_invoices', []);
+    const [payments, setPayments] = useLocalStorage<Payment[]>('realtyos_payments', []);
     const [lastCreatedUnits, setLastCreatedUnits] = useState<Unit[]>([]);
-    
-    // Edit States
-    const [editingProperty, setEditingProperty] = useState<Property | null>(null);
-    const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
-    const [editingMaintenanceRequest, setEditingMaintenanceRequest] = useState<MaintenanceRequest | null>(null);
-    const [editingPropertyGrouping, setEditingPropertyGrouping] = useState<PropertyGrouping | null>(null);
 
-    // Initial Fetch
+    // Sync unit occupancy when tenants change
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const propsRes = await fetch(`${API_BASE}/properties`);
-                if (propsRes.ok) setProperties(await propsRes.json());
+        if (properties.length === 0) return;
+        
+        const updatedProperties = properties.map(prop => {
+            const propUnits = units.filter(u => u.propertyName === prop.name);
+            const totalUnits = propUnits.length;
+            const occupiedUnits = propUnits.filter(u => u.status === 'Occupied').length;
+            const occupancy = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
+            return { ...prop, units: totalUnits, occupancy };
+        });
+        
+        // Simple check to avoid infinite loop - only update if values changed
+        const currentString = JSON.stringify(properties);
+        const newString = JSON.stringify(updatedProperties);
+        if (currentString !== newString) {
+            setProperties(updatedProperties);
+        }
+    }, [units, tenants]);
 
-                const unitsRes = await fetch(`${API_BASE}/units`);
-                if (unitsRes.ok) setUnits(await unitsRes.json());
-
-                const tenantsRes = await fetch(`${API_BASE}/tenants`);
-                if (tenantsRes.ok) setTenants(await tenantsRes.json());
-
-                const invRes = await fetch(`${API_BASE}/invoices`);
-                if (invRes.ok) setInvoices(await invRes.json());
-
-                const payRes = await fetch(`${API_BASE}/payments`);
-                if (payRes.ok) setPayments(await payRes.json());
-
-                const expRes = await fetch(`${API_BASE}/expenses`);
-                if (expRes.ok) setExpenses(await expRes.json());
-
-                const maintRes = await fetch(`${API_BASE}/maintenance`);
-                if (maintRes.ok) setMaintenanceRequests(await maintRes.json());
-
-                const utilRes = await fetch(`${API_BASE}/utilities`);
-                if (utilRes.ok) setUtilities(await utilRes.json());
-
-            } catch (error) {
-                console.error("Failed to fetch data from backend", error);
-            }
-        };
-        fetchData();
-    }, []);
-
-    // -- Property Actions --
-    const addProperty = async (property: Property) => {
-        try {
-            const res = await fetch(`${API_BASE}/properties`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(property)
-            });
-            if (res.ok) {
-                const saved = await res.json();
-                setProperties([...properties, saved]);
-            }
-        } catch(e) { console.error(e); }
+    const addProperty = (property: Property) => {
+        setProperties([...properties, property]);
     };
 
-    const updateProperty = async (updatedProperty: Property) => {
-        try {
-            const res = await fetch(`${API_BASE}/properties/${updatedProperty.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedProperty)
-            });
-            if (res.ok) {
-                const saved = await res.json();
-                setProperties(properties.map(p => p.id === saved.id ? saved : p));
-            }
-        } catch(e) { console.error(e); }
+    const addUnit = (unit: Unit) => {
+        setUnits((prev) => [...prev, unit]);
+        setLastCreatedUnits([unit]);
     };
 
-    const deleteProperty = async (id: number) => {
-        try {
-            await fetch(`${API_BASE}/properties/${id}`, { method: 'DELETE' });
-            setProperties(properties.filter(p => p.id !== id));
-        } catch(e) { console.error(e); }
+    const addUnits = (newUnits: Unit[]) => {
+        setUnits((prev) => [...prev, ...newUnits]);
+        setLastCreatedUnits(newUnits);
     };
 
-    // -- Unit Actions --
-    const addUnit = async (unit: Unit) => {
-        try {
-            const res = await fetch(`${API_BASE}/units`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(unit)
-            });
-            if (res.ok) {
-                const saved = await res.json();
-                setUnits(prev => [...prev, saved]);
-                setLastCreatedUnits([saved]);
-            }
-        } catch(e) { console.error(e); }
+    const addTenant = (tenant: Tenant) => {
+        setTenants([...tenants, tenant]);
+        // Auto-occupy unit
+        setUnits(units.map(u => 
+            u.propertyName === tenant.property && u.name === tenant.unit 
+                ? { ...u, status: 'Occupied' } 
+                : u
+        ));
     };
 
-    const addUnits = async (newUnits: Unit[]) => {
-        try {
-            const res = await fetch(`${API_BASE}/units`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newUnits)
-            });
-            if (res.ok) {
-                const saved = await res.json();
-                setUnits(prev => [...prev, ...saved]);
-                setLastCreatedUnits(saved);
-            }
-        } catch(e) { console.error(e); }
+    const addTenants = (newTenants: Tenant[]) => {
+        setTenants([...tenants, ...newTenants]);
+        
+        // Update occupancy for multiple units
+        const occupiedKeys = new Set(newTenants.map(t => `${t.property}_${t.unit}`));
+        
+        setUnits(units.map(u => 
+            occupiedKeys.has(`${u.propertyName}_${u.name}`)
+                ? { ...u, status: 'Occupied' } 
+                : u
+        ));
     };
 
-    const updateUnit = async (updatedUnit: Unit) => {
-        try {
-            const res = await fetch(`${API_BASE}/units/${updatedUnit.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedUnit)
-            });
-            if(res.ok) {
-                const saved = await res.json();
-                setUnits(units.map(u => u.id === saved.id ? saved : u));
-            }
-        } catch(e) { console.error(e); }
-    };
-
-    const deleteUnit = async (id: number) => {
-        try {
-            await fetch(`${API_BASE}/units/${id}`, { method: 'DELETE' });
-            setUnits(units.filter(u => u.id !== id));
-        } catch(e) { console.error(e); }
-    };
-
-    // -- Tenant Actions --
-    const addTenant = async (tenant: Tenant) => {
-        try {
-            const res = await fetch(`${API_BASE}/tenants`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(tenant)
-            });
-            if(res.ok) {
-                const saved = await res.json();
-                setTenants([...tenants, saved]);
-                // Optimistically update unit occupancy locally
-                setUnits(units.map(u => 
-                    u.propertyName === saved.property && u.name === saved.unit 
-                        ? { ...u, status: 'Occupied' } 
-                        : u
-                ));
-            }
-        } catch(e) { console.error(e); }
-    };
-
-    const addTenants = async (newTenants: Tenant[]) => {
-        try {
-            const res = await fetch(`${API_BASE}/tenants`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newTenants)
-            });
-            if (res.ok) {
-                const saved = await res.json();
-                setTenants([...tenants, ...saved]);
-            }
-        } catch(e) { console.error(e); }
-    };
-
-    const deleteTenant = async (id: number) => {
-        try {
-            await fetch(`${API_BASE}/tenants/${id}`, { method: 'DELETE' });
-            const tenant = tenants.find(t => t.id === id);
-            if(tenant) {
-                setUnits(units.map(u => 
-                    u.propertyName === tenant.property && u.name === tenant.unit 
-                        ? { ...u, status: 'Vacant' } 
-                        : u
-                ));
-                setTenants(prev => prev.filter(t => t.id !== id));
-            }
-        } catch(e) { console.error(e); }
-    };
-
-    // -- Financial Actions --
-    const addExpense = async (expense: Expense) => {
-        try {
-            const res = await fetch(`${API_BASE}/expenses`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(expense)
-            });
-            if(res.ok) {
-                const saved = await res.json();
-                setExpenses([...expenses, saved]);
-            }
-        } catch(e) { console.error(e); }
+    const addExpense = (expense: Expense) => {
+        setExpenses([...expenses, expense]);
     };
 
     const addRecurringExpense = (expense: RecurringExpense) => {
-        // Mock only for now as no backend endpoint defined in basic setup
         setRecurringExpenses([...recurringExpenses, expense]);
     };
 
-    const addInvoice = async (invoice: Invoice) => {
-        try {
-            const res = await fetch(`${API_BASE}/invoices`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(invoice)
-            });
-            if(res.ok) {
-                const saved = await res.json();
-                setInvoices([...invoices, saved]);
-            }
-        } catch(e) { console.error(e); }
+    const addInvoice = (invoice: Invoice) => {
+        setInvoices([...invoices, invoice]);
     };
 
-    const addPayment = async (payment: Payment) => {
-        try {
-            const res = await fetch(`${API_BASE}/payments`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payment)
-            });
-            if(res.ok) {
-                const saved = await res.json();
-                setPayments([...payments, saved]);
-            }
-        } catch(e) { console.error(e); }
-    };
-
-    // -- Utility Actions --
-    const addUtility = async (utility: Utility) => {
-        try {
-            const res = await fetch(`${API_BASE}/utilities`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(utility)
-            });
-            if(res.ok) {
-                const saved = await res.json();
-                setUtilities([...utilities, saved]);
-            }
-        } catch(e) { console.error(e); }
-    };
-
-    const updateUtility = async (updatedUtility: Utility) => {
-        try {
-            const res = await fetch(`${API_BASE}/utilities/${updatedUtility.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedUtility)
-            });
-            if(res.ok) {
-                const saved = await res.json();
-                setUtilities(utilities.map(u => u.id === saved.id ? saved : u));
-            }
-        } catch(e) { console.error(e); }
-    };
-
-    const deleteUtility = (id: number) => {
-        // Mock only
-        setUtilities(utilities.filter(u => u.id !== id));
-    };
-
-    // -- Maintenance Actions --
-    const addMaintenanceRequest = async (request: MaintenanceRequest) => {
-        try {
-            const res = await fetch(`${API_BASE}/maintenance`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(request)
-            });
-            if(res.ok) {
-                const saved = await res.json();
-                setMaintenanceRequests([...maintenanceRequests, saved]);
-            }
-        } catch(e) { console.error(e); }
-    };
-
-    const updateMaintenanceRequest = async (updatedRequest: MaintenanceRequest) => {
-        try {
-            const res = await fetch(`${API_BASE}/maintenance/${updatedRequest.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedRequest)
-            });
-            if(res.ok) {
-                const saved = await res.json();
-                setMaintenanceRequests(maintenanceRequests.map(r => r.id === saved.id ? saved : r));
-            }
-        } catch(e) { console.error(e); }
-    };
-
-    const deleteMaintenanceRequest = (id: number) => {
-        setMaintenanceRequests(maintenanceRequests.filter(r => r.id !== id));
-    };
-
-    // -- Grouping Actions (Mocked for now) --
-    const addPropertyGrouping = (group: PropertyGrouping) => {
-        setPropertyGroupings([...propertyGroupings, group]);
-    };
-
-    const updatePropertyGrouping = (updatedGroup: PropertyGrouping) => {
-        setPropertyGroupings(propertyGroupings.map(g => g.id === updatedGroup.id ? updatedGroup : g));
-    };
-
-    const deletePropertyGrouping = (id: number) => {
-        setPropertyGroupings(propertyGroupings.filter(g => g.id !== id));
-    };
-
-    // -- Message Actions (Mocked) --
-    const addMessage = (message: Message) => {
-        setMessages([message, ...messages]);
-    };
-
-    const addMessages = (newMessages: Message[]) => {
-        setMessages([...newMessages, ...messages]);
+    const addPayment = (payment: Payment) => {
+        setPayments([...payments, payment]);
     };
 
     const getUnitsByProperty = (propertyName: string) => {
@@ -418,53 +152,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             recurringExpenses,
             invoices,
             payments,
-            utilities,
-            maintenanceRequests,
-            propertyGroupings,
-            messages,
             lastCreatedUnits,
-            // Property
             addProperty,
-            updateProperty,
-            deleteProperty,
-            editingProperty,
-            setEditingProperty,
-            // Unit
             addUnit,
             addUnits,
-            updateUnit,
-            deleteUnit,
-            editingUnit,
-            setEditingUnit,
-            // Tenant
             addTenant,
             addTenants,
-            deleteTenant,
-            // Financial
             addExpense,
             addRecurringExpense,
             addInvoice,
             addPayment,
-            // Utility
-            addUtility,
-            updateUtility,
-            deleteUtility,
-            // Maintenance
-            addMaintenanceRequest,
-            updateMaintenanceRequest,
-            deleteMaintenanceRequest,
-            editingMaintenanceRequest,
-            setEditingMaintenanceRequest,
-            // Grouping
-            addPropertyGrouping,
-            updatePropertyGrouping,
-            deletePropertyGrouping,
-            editingPropertyGrouping,
-            setEditingPropertyGrouping,
-            // Messages
-            addMessage,
-            addMessages,
-            
             getUnitsByProperty
         }}>
             {children}

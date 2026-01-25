@@ -12,8 +12,6 @@ const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({ setCurrentVie
     const [abbreviatedName, setAbbreviatedName] = useState('');
     const [companyAddress, setCompanyAddress] = useState('');
     const [currency, setCurrency] = useState('KES');
-    const [timezone, setTimezone] = useState('Africa/Nairobi');
-    const [logoName, setLogoName] = useState('No file chosen');
     
     // MPESA State
     const [mpesaType, setMpesaType] = useState<'paybill' | 'till'>('paybill');
@@ -62,37 +60,32 @@ const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({ setCurrentVie
         setReminders(prev => ({ ...prev, [date]: !prev[date] }));
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            setLogoName(e.target.files[0].name);
-        }
-    };
-
     const handleUpdateSettings = () => {
         // Here you would typically validate and send data to backend
         console.log('Settings Updated:', {
             companyName,
             mpesaNumber,
             reminders,
-            accountType,
-            timezone
+            accountType
         });
         
         setShowSuccess(true);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(() => setShowSuccess(false), 3000);
+        
+        // Scroll to top to see message
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     return (
         <div className="animate-fadeIn max-w-6xl mx-auto pb-20 relative">
             {showSuccess && (
-                <div className="fixed top-24 right-4 md:right-10 z-50 animate-fadeIn">
+                <div className="fixed top-24 right-10 z-50 animate-fadeIn">
                     <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative shadow-lg" role="alert">
                         <strong className="font-bold">Success!</strong>
                         <span className="block sm:inline"> Settings updated successfully.</span>
-                        <button className="absolute top-0 bottom-0 right-0 px-4 py-3" onClick={() => setShowSuccess(false)}>
+                        <span className="absolute top-0 bottom-0 right-0 px-4 py-3" onClick={() => setShowSuccess(false)}>
                             <svg className="fill-current h-6 w-6 text-green-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
-                        </button>
+                        </span>
                     </div>
                 </div>
             )}
@@ -168,9 +161,9 @@ const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({ setCurrentVie
                                     <div className="flex items-center gap-3">
                                         <label className="cursor-pointer bg-white border border-[#1a237e] text-[#1a237e] text-sm font-medium py-1.5 px-4 rounded hover:bg-blue-50 transition-colors">
                                             Choose file
-                                            <input type="file" className="hidden" onChange={handleFileChange} />
+                                            <input type="file" className="hidden" />
                                         </label>
-                                        <span className="text-sm text-gray-400">{logoName}</span>
+                                        <span className="text-sm text-gray-400">No file chosen</span>
                                     </div>
                                 </div>
                             </div>
@@ -187,24 +180,14 @@ const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({ setCurrentVie
                                 >
                                     <option value="KES">KES</option>
                                     <option value="USD">USD</option>
-                                    <option value="EUR">EUR</option>
-                                    <option value="GBP">GBP</option>
                                 </select>
                             </div>
 
                             <div>
                                 <h3 className="text-sm font-medium text-gray-800 mb-2">Timezone</h3>
-                                <select 
-                                    value={timezone}
-                                    onChange={(e) => setTimezone(e.target.value)}
-                                    className="w-full sm:w-64 border-gray-300 rounded-md shadow-sm focus:ring-[#1a237e] focus:border-[#1a237e] text-sm p-2 bg-white border text-gray-700"
-                                >
-                                    <option value="Africa/Nairobi">Africa/Nairobi (GMT+3)</option>
-                                    <option value="UTC">UTC (GMT+0)</option>
-                                    <option value="America/New_York">New York (GMT-5)</option>
-                                    <option value="Europe/London">London (GMT+0)</option>
-                                    <option value="Asia/Dubai">Dubai (GMT+4)</option>
-                                </select>
+                                <button className="border border-[#1a237e] text-[#1a237e] rounded-md px-4 py-2 text-sm font-medium hover:bg-blue-50 transition-colors">
+                                    Set Timezone ▼
+                                </button>
                             </div>
                         </section>
 
@@ -309,7 +292,7 @@ const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({ setCurrentVie
                                             <span className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-400 text-white text-[10px] font-bold cursor-help" title="Info">i</span>
                                         </label>
                                     </div>
-                                    <p className="text-sm text-cyan-600 mt-2 pl-6 bg-cyan-50 p-2 rounded inline-block">
+                                    <p className="text-sm text-cyan-500 mt-2 pl-6">
                                         This task runs automatically between 1st and 5th of each month. Next run will be on 1/1/2026
                                     </p>
                                 </div>
@@ -352,7 +335,7 @@ const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({ setCurrentVie
                         <section className="space-y-4">
                             <h3 className="text-lg font-medium text-gray-800">Monthly Payment Reminders</h3>
                             <p className="text-sm text-gray-500">Choose date(s) to remind tenants</p>
-                            <div className="flex flex-wrap gap-4 pl-1">
+                            <div className="space-y-2 pl-1">
                                 {Object.entries(reminders).map(([day, isActive]) => (
                                     <div key={day} className="flex items-center">
                                         <input 
@@ -408,7 +391,7 @@ const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({ setCurrentVie
                                     />
                                     <label htmlFor="comm-email" className="ml-2 text-sm text-gray-600">Email</label>
                                 </div>
-                                <div className="flex items-center opacity-50 cursor-not-allowed">
+                                <div className="flex items-center">
                                     <svg className="w-4 h-4 text-gray-400 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                                     <span className="text-sm text-gray-400">WhatsApp (coming soon)</span>
                                 </div>

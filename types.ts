@@ -32,15 +32,7 @@ export type View =
   | 'PropertyForm'
   | 'UnitForm'
   | 'TenantForm'
-  | 'BulkTenantForm'
-  | 'InvoiceForm'
-  | 'PaymentForm'
-  | 'BankStatementUpload'
-  | 'ExpenseForm'
-  | 'RecurringExpenseForm'
-  | 'UtilityForm'
-  | 'MaintenanceForm'
-  | 'PropertyGroupingForm';
+  | 'BulkTenantForm';
 
 export interface RecurringBill {
   type: string;
@@ -155,14 +147,11 @@ export interface RecurringExpense {
 export interface Invoice {
   id: number;
   date: string;
-  dueDate: string;
   invoiceNumber: string;
   tenantName: string;
-  property: string;
-  unit: string;
-  items: { description: string; amount: number }[];
-  totalAmount: number;
-  status: 'Paid' | 'Unpaid' | 'Pending' | 'Overdue';
+  item: string;
+  amount: number;
+  status: 'paid' | 'unpaid' | 'pending';
 }
 
 export interface Payment {
@@ -175,53 +164,4 @@ export interface Payment {
   amount: number;
   method: string;
   status: 'confirmed' | 'pending';
-}
-
-export interface Utility {
-  id: number;
-  date: string;
-  propertyName: string;
-  unitName: string;
-  type: string;
-  previousReading: number;
-  currentReading: number;
-  consumption: number;
-  rate: number;
-  amount: number;
-  status: 'Uninvoiced' | 'Invoiced';
-  invoiceNumber?: string;
-}
-
-export interface MaintenanceRequest {
-  id: number;
-  title: string;
-  date: string;
-  propertyName: string;
-  unitName: string;
-  category: string;
-  priority: 'Low' | 'Medium' | 'High' | 'Critical';
-  status: 'Open' | 'In Progress' | 'Closed' | 'On Hold';
-  description?: string;
-  cost?: number;
-  assignedTo?: string;
-}
-
-export interface PropertyGrouping {
-  id: number;
-  name: string;
-  description: string;
-  managerName: string;
-  propertyIds: number[];
-}
-
-export interface Message {
-  id: number;
-  date: string;
-  recipient: string;
-  recipientGroup: 'Tenant' | 'Team' | 'All Tenants';
-  property?: string;
-  unit?: string;
-  type: 'SMS' | 'Email';
-  status: 'Delivered' | 'Failed' | 'Pending' | 'Sent';
-  content: string;
 }

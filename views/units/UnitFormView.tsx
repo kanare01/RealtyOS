@@ -28,7 +28,7 @@ const FormRow = ({ label, subLabel, children, helpIcon = false }: { label: strin
 );
 
 const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
-    const { properties, addUnit, addUnits, editingUnit, updateUnit, setEditingUnit } = useData();
+    const { properties, addUnit, addUnits } = useData();
     
     // Form Fields
     const [selectedProperty, setSelectedProperty] = useState('');
@@ -55,25 +55,12 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
 
-    // Initialize selected property and pre-fill if editing
+    // Initialize selected property
     useEffect(() => {
-        if (editingUnit) {
-            setSelectedProperty(editingUnit.propertyName);
-            setUnitId(editingUnit.name);
-            setCategory(editingUnit.category || '');
-            setRentAmount(editingUnit.rentAmount.toString());
-            setTaxRate(editingUnit.taxRate?.toString() || '');
-            setNotes(editingUnit.notes || '');
-            
-            if (editingUnit.recurringBills && editingUnit.recurringBills.length > 0) {
-                setBillType(editingUnit.recurringBills[0].type);
-                setBillAmount(editingUnit.recurringBills[0].amount.toString());
-            }
-            setIsBulkMode(false); // Can't bulk edit in this form structure yet
-        } else if (properties.length > 0 && !selectedProperty) {
+        if (properties.length > 0 && !selectedProperty) {
             setSelectedProperty(properties[0].name);
         }
-    }, [properties, editingUnit]);
+    }, [properties, selectedProperty]);
 
     const handleClear = () => {
         setUnitId('');
@@ -86,14 +73,13 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
         setBillType('');
         setBillAmount('');
         setNotes('');
-        setEditingUnit(null);
         if (properties.length > 0) {
             setSelectedProperty(properties[0].name);
         }
         setIsSubmitted(false);
     };
 
-    const handleSave = () => {
+    const handleAddUnit = () => {
         if (!selectedProperty) {
             alert("Please select a property");
             return;
@@ -103,29 +89,6 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
         const recurringBills = billType ? [{ type: billType, amount: parseFloat(billAmount) || 0 }] : [];
         const baseRent = parseInt(rentAmount) || 0;
 
-        // --- Editing Logic ---
-        if (editingUnit) {
-             updateUnit({
-                ...editingUnit,
-                propertyId: propObj?.id || editingUnit.propertyId,
-                propertyName: selectedProperty,
-                name: unitId,
-                rentAmount: baseRent,
-                category,
-                taxRate: parseFloat(taxRate) || 0,
-                notes,
-                recurringBills
-            });
-            setShowSuccessModal(true);
-            setTimeout(() => {
-                setShowSuccessModal(false);
-                setEditingUnit(null);
-                setCurrentView('Units');
-            }, 2000);
-            return;
-        }
-
-        // --- Creation Logic ---
         if (isBulkMode) {
             if (!startNumber || !endNumber) {
                 alert("Please enter Starting Number and Ending Number");
@@ -167,10 +130,10 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
                     recurringBills
                 });
             }
+            
             addUnits(unitsToAdd);
 
         } else {
-            // Single Create
             if (!unitId || !rentAmount) {
                 alert("Please fill in the required fields (Property, Unit ID, Rent Amount)");
                 return;
@@ -203,9 +166,17 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
         setPrefix('');
         setStartNumber('');
         setEndNumber('');
-        // Keep rent/property/category selected for ease of entry
+        setRentAmount('');
+        // Keep property selected
         setIsSubmitted(false);
     };
+
+    const handleUpdateUnit = () => {
+        setShowSuccessModal(true);
+        setTimeout(() => {
+            setShowSuccessModal(false);
+        }, 3000);
+    }
 
     const handleNavigateToTenant = () => {
         if (isBulkMode) {
@@ -213,11 +184,6 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
         } else {
             setCurrentView('TenantForm');
         }
-    };
-
-    const handleBack = () => {
-        setEditingUnit(null);
-        setCurrentView('Units');
     };
 
     return (
@@ -231,9 +197,7 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
                         </div>
                         <div className="p-8 text-center bg-white">
                             <p className="text-[#1B5E20] text-lg font-medium">
-                                {editingUnit 
-                                    ? 'Unit Updated Successfully' 
-                                    : (isBulkMode ? 'Units Added Successfully' : 'Unit Added Successfully')}
+                                {isSubmitted ? (isBulkMode ? 'Units Added Successfully' : 'Unit Added Successfully') : 'Unit Updated Successfully'}
                             </p>
                         </div>
                     </div>
@@ -242,17 +206,17 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
 
             <div className="mb-4">
                 <button 
-                    onClick={handleBack}
+                    onClick={() => setCurrentView('Getting Started')}
                     className="flex items-center text-[#1a237e] border border-[#1a237e] px-4 py-1.5 rounded text-sm font-medium hover:bg-blue-50 transition-colors bg-white"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
-                    Back to Units
+                    Back
                 </button>
             </div>
 
-            <h2 className="text-2xl font-normal text-gray-700 mb-6">{editingUnit ? 'Edit Unit' : 'Unit Form'}</h2>
+            <h2 className="text-2xl font-normal text-gray-700 mb-6">Unit Form</h2>
 
             <div className="max-w-4xl mx-auto">
                 <FormRow label="Select Property">
@@ -268,30 +232,28 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
                     </select>
                 </FormRow>
 
-                {!editingUnit && (
-                    <FormRow label="Add Mode">
-                        <div className="flex items-center space-x-4 pt-2">
-                            <label className="flex items-center cursor-pointer">
-                                <input 
-                                    type="radio" 
-                                    checked={!isBulkMode} 
-                                    onChange={() => setIsBulkMode(false)}
-                                    className="h-4 w-4 text-[#1a237e] focus:ring-[#1a237e] border-gray-300"
-                                />
-                                <span className="ml-2 text-sm text-gray-700">Add Unit</span>
-                            </label>
-                            <label className="flex items-center cursor-pointer">
-                                <input 
-                                    type="radio" 
-                                    checked={isBulkMode} 
-                                    onChange={() => setIsBulkMode(true)}
-                                    className="h-4 w-4 text-[#1a237e] focus:ring-[#1a237e] border-gray-300"
-                                />
-                                <span className="ml-2 text-sm text-gray-700">Add Multiple Units</span>
-                            </label>
-                        </div>
-                    </FormRow>
-                )}
+                <FormRow label="Add Mode">
+                    <div className="flex items-center space-x-4 pt-2">
+                        <label className="flex items-center cursor-pointer">
+                            <input 
+                                type="radio" 
+                                checked={!isBulkMode} 
+                                onChange={() => setIsBulkMode(false)}
+                                className="h-4 w-4 text-[#1a237e] focus:ring-[#1a237e] border-gray-300"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Add Unit</span>
+                        </label>
+                        <label className="flex items-center cursor-pointer">
+                            <input 
+                                type="radio" 
+                                checked={isBulkMode} 
+                                onChange={() => setIsBulkMode(true)}
+                                className="h-4 w-4 text-[#1a237e] focus:ring-[#1a237e] border-gray-300"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Add Multiple Units</span>
+                        </label>
+                    </div>
+                </FormRow>
 
                 {isBulkMode ? (
                     <>
@@ -419,33 +381,31 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
                     {!isSubmitted ? (
                         <>
                             <button 
-                                onClick={handleSave}
+                                onClick={handleAddUnit}
                                 className="w-full bg-[#000080] hover:bg-blue-900 text-white font-medium py-2.5 rounded-sm shadow-sm transition-colors flex justify-center items-center"
                             >
-                                {editingUnit ? (
-                                    <>
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                        </svg>
-                                        Update Unit
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="mr-1">+</span> {isBulkMode ? 'Add Units' : 'Add Unit'}
-                                    </>
-                                )}
+                                <span className="mr-1">+</span> {isBulkMode ? 'Add Units' : 'Add Unit'}
                             </button>
-                            {!editingUnit && (
-                                <button 
-                                    onClick={handleClear}
-                                    className="w-full bg-white border border-[#1a237e] text-[#1a237e] font-medium py-2.5 rounded-sm shadow-sm hover:bg-gray-50 transition-colors"
-                                >
-                                    Clear
-                                </button>
-                            )}
+                            <button 
+                                onClick={handleClear}
+                                className="w-full bg-white border border-[#1a237e] text-[#1a237e] font-medium py-2.5 rounded-sm shadow-sm hover:bg-gray-50 transition-colors"
+                            >
+                                Clear
+                            </button>
                         </>
                     ) : (
                         <>
+                            {!isBulkMode && (
+                                <button 
+                                    onClick={handleUpdateUnit}
+                                    className="w-full bg-[#000080] hover:bg-blue-900 text-white font-medium py-2.5 rounded-sm shadow-sm transition-colors flex justify-center items-center"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    Update Unit
+                                </button>
+                            )}
                             <button 
                                 onClick={handleAddAnother}
                                 className="w-full bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[#1a237e] font-medium py-2.5 rounded-sm shadow-sm transition-colors flex justify-center items-center"
@@ -462,7 +422,7 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
                 <div className="mt-8 border-t border-gray-300 pt-6">
                     <div className="flex justify-between items-center">
                         <button 
-                            onClick={handleBack}
+                            onClick={() => setCurrentView('Getting Started')}
                             className="flex items-center text-[#1a237e] border border-[#1a237e] px-4 py-1.5 rounded text-sm font-medium hover:bg-blue-50 transition-colors bg-white"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">

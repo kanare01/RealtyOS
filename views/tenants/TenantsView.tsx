@@ -141,10 +141,7 @@ const TenantsView: React.FC<TenantsViewProps> = ({ setCurrentView }) => {
                     </svg>
                     Add Tenant
                 </button>
-                <button 
-                    onClick={() => setCurrentView('Communication')}
-                    className="px-4 py-2 text-sm font-medium text-[#1a237e] bg-white border border-[#1a237e] hover:bg-gray-50 rounded-md transition-colors shadow-sm flex items-center"
-                >
+                <button className="px-4 py-2 text-sm font-medium text-[#1a237e] bg-white border border-[#1a237e] hover:bg-gray-50 rounded-md transition-colors shadow-sm flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
@@ -166,17 +163,19 @@ const TenantsView: React.FC<TenantsViewProps> = ({ setCurrentView }) => {
                         <>
                             <div className="fixed inset-0 z-10" onClick={() => setIsMoreOptionsOpen(false)}></div>
                             <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-20 py-1">
-                                <button onClick={() => setCurrentView('Communication')} className="block w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-[#1a237e]">Send Custom Message</button>
-                                <button onClick={() => setCurrentView('InvoiceForm')} className="block w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-[#1a237e]">Add Invoice</button>
-                                <button onClick={() => setCurrentView('Invoices')} className="block w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-[#1a237e] flex items-center justify-between">
+                                <button className="block w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-[#1a237e]">Send Custom Message</button>
+                                <button className="block w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-[#1a237e]">Add Invoice</button>
+                                <button className="block w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-[#1a237e] flex items-center justify-between">
                                     Generate Bulk Invoices
                                     <span className="bg-[#1a237e] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">New</span>
                                 </button>
                                 <div className="border-t border-gray-100 my-1"></div>
-                                <button onClick={() => setCurrentView('Invoices')} className="block w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-[#1a237e]">Generate Rent Invoices</button>
-                                <button onClick={() => setCurrentView('Invoices')} className="block w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-[#1a237e]">Generate Other Bills</button>
+                                <button className="block w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-[#1a237e]">Generate Rent Invoices</button>
+                                <button className="block w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-[#1a237e]">Generate Other Recurring Bills Invoices</button>
+                                <button className="block w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-[#1a237e]">Generate Penalty Invoices</button>
+                                <button className="block w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-[#1a237e]">Generate Custom Penalty Invoices</button>
                                 <div className="border-t border-gray-100 my-1"></div>
-                                <button onClick={() => setCurrentView('PaymentForm')} className="block w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-[#1a237e]">Add Payment</button>
+                                <button className="block w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-[#1a237e]">Add Payment</button>
                                 <button className="block w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-[#1a237e]">Shift Tenant</button>
                             </div>
                         </>
@@ -211,7 +210,6 @@ const TenantsView: React.FC<TenantsViewProps> = ({ setCurrentView }) => {
                         onSearchChange={setSearchTerm}
                         sortConfig={sortConfig}
                         onSort={handleSort}
-                        setCurrentView={setCurrentView}
                     />
                 </div>
             </div>

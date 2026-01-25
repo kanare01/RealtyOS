@@ -1,17 +1,12 @@
-
 import React, { useState } from 'react';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import { View } from './types';
 import { DataProvider } from './contexts/DataContext';
 
-// Auth
-import LoginView from './views/auth/LoginView';
-
 // Main view components
 import DashboardView from './views/dashboard/DashboardView';
 import InvoicingView from './views/invoicing/InvoicingView';
-import InvoiceFormView from './views/invoicing/InvoiceFormView';
 import TenantsView from './views/tenants/TenantsView';
 import PropertiesView from './views/properties/PropertiesView';
 import ReportsView from './views/reports/ReportsView';
@@ -19,18 +14,11 @@ import CommunicationsView from './views/communications/CommunicationsView';
 import SettingsView from './views/settings/SettingsView';
 import Placeholder from './components/shared/Placeholder';
 import PaymentsView from './views/payments/PaymentsView';
-import PaymentFormView from './views/payments/PaymentFormView';
-import BankStatementUploadView from './views/payments/BankStatementUploadView';
 import ExpensesView from './views/expenses/ExpensesView';
-import ExpenseFormView from './views/expenses/ExpenseFormView';
-import RecurringExpenseFormView from './views/expenses/RecurringExpenseFormView';
 import UnitsView from './views/units/UnitsView';
 import UtilitiesView from './views/utilities/UtilitiesView';
-import UtilityFormView from './views/utilities/UtilityFormView';
 import MaintenanceView from './views/maintenance/MaintenanceView';
-import MaintenanceFormView from './views/maintenance/MaintenanceFormView';
 import PropertyGroupingView from './views/propertyGrouping/PropertyGroupingView';
-import PropertyGroupingFormView from './views/propertyGrouping/PropertyGroupingFormView';
 import StatementsView from './views/reports/StatementsView';
 import InsightsView from './views/insights/InsightsView';
 import GettingStartedView from './views/dashboard/GettingStartedView';
@@ -48,10 +36,8 @@ import TeamSettingsView from './views/settings/TeamSettingsView';
 import BillingSettingsView from './views/settings/BillingSettingsView';
 import MpesaTransactionsSettingsView from './views/settings/MpesaTransactionsSettingsView';
 import AuditTrailSettingsView from './views/settings/AuditTrailSettingsView';
-import FoundationView from './views/foundation/FoundationView';
 
 const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentView, setCurrentView] = useState<View>('Dashboard');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false);
@@ -64,17 +50,6 @@ const App: React.FC = () => {
   const handleSetCurrentView = (view: View) => {
     setCurrentView(view);
     closeMobileSidebar();
-  };
-
-  const handleLogin = () => {
-    setIsAuthenticated(true);
-  };
-
-  const handleLogout = () => {
-    if (confirm("Are you sure you want to logout?")) {
-        setIsAuthenticated(false);
-        setCurrentView('Dashboard'); // Reset view on logout
-    }
   };
 
   const renderView = () => {
@@ -93,20 +68,10 @@ const App: React.FC = () => {
         return <BulkTenantFormView setCurrentView={handleSetCurrentView} />;
       case 'Invoices':
         return <InvoicingView setCurrentView={handleSetCurrentView} />;
-      case 'InvoiceForm':
-        return <InvoiceFormView setCurrentView={handleSetCurrentView} />;
       case 'Payments':
         return <PaymentsView setCurrentView={handleSetCurrentView} />;
-      case 'PaymentForm':
-        return <PaymentFormView setCurrentView={handleSetCurrentView} />;
-      case 'BankStatementUpload':
-        return <BankStatementUploadView setCurrentView={handleSetCurrentView} />;
       case 'Expenses':
         return <ExpensesView setCurrentView={handleSetCurrentView} />;
-      case 'ExpenseForm':
-        return <ExpenseFormView setCurrentView={handleSetCurrentView} />;
-      case 'RecurringExpenseForm':
-        return <RecurringExpenseFormView setCurrentView={handleSetCurrentView} />;
       case 'Tenants':
         return <TenantsView setCurrentView={handleSetCurrentView} />;
       case 'Properties':
@@ -115,26 +80,20 @@ const App: React.FC = () => {
         return <UnitsView setCurrentView={handleSetCurrentView} />;
       case 'Utilities':
         return <UtilitiesView setCurrentView={handleSetCurrentView} />;
-      case 'UtilityForm':
-        return <UtilityFormView setCurrentView={handleSetCurrentView} />;
       case 'Maintenance':
         return <MaintenanceView setCurrentView={handleSetCurrentView} />;
-      case 'MaintenanceForm':
-        return <MaintenanceFormView setCurrentView={handleSetCurrentView} />;
       case 'Property Grouping':
         return <PropertyGroupingView setCurrentView={handleSetCurrentView} />;
-      case 'PropertyGroupingForm':
-        return <PropertyGroupingFormView setCurrentView={handleSetCurrentView} />;
       case 'Reports':
         return <ReportsView />;
       case 'Statements':
         return <StatementsView />;
       case 'Insights (beta)':
-        return <InsightsView setCurrentView={handleSetCurrentView} />;
+        return <InsightsView />;
       case 'Communication':
         return <CommunicationsView />;
       case 'Settings':
-        return <SettingsView setCurrentView={handleSetCurrentView} />;
+        return <SettingsView />;
       case 'General':
         return <GeneralSettingsView setCurrentView={handleSetCurrentView} />;
       case 'Backup':
@@ -155,19 +114,14 @@ const App: React.FC = () => {
         return <MpesaTransactionsSettingsView setCurrentView={handleSetCurrentView} />;
       case 'Audit Trail':
         return <AuditTrailSettingsView setCurrentView={handleSetCurrentView} />;
-      case 'Foundation':
-        return <FoundationView />;
       case 'Financials':
       case 'Property/Unit':
+      case 'Foundation':
         return <Placeholder title={currentView} />;
       default:
         return <Placeholder title="Unknown View" />;
     }
   };
-
-  if (!isAuthenticated) {
-    return <LoginView onLogin={handleLogin} />;
-  }
 
   return (
     <DataProvider>
@@ -197,11 +151,7 @@ const App: React.FC = () => {
         </div>
 
         <div className="flex-1 flex flex-col overflow-hidden w-full transition-all duration-300">
-          <Header 
-            currentView={currentView} 
-            onMenuClick={toggleMobileSidebar} 
-            onLogout={handleLogout}
-          />
+          <Header currentView={currentView} onMenuClick={toggleMobileSidebar} />
           <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4 md:p-6 relative scroll-smooth">
             {renderView()}
           </main>

@@ -1,27 +1,16 @@
 
 import React from 'react';
-import { Property } from '../../types';
-
-interface PaymentsFiltersPanelProps {
-    searchTerm: string;
-    onSearchChange: (val: string) => void;
-    statusFilter: string[];
-    onStatusChange: (val: string[]) => void;
-    properties: Property[];
-    propertyFilter: string;
-    onPropertyChange: (val: string) => void;
-    dateRange: { start: string; end: string };
-    onDateRangeChange: (val: { start: string; end: string }) => void;
-    minAmount: string;
-    onMinAmountChange: (val: string) => void;
-    maxAmount: string;
-    onMaxAmountChange: (val: string) => void;
-}
 
 const paymentStatuses = [
     { id: 'draft', label: 'draft' },
     { id: 'confirmed', label: 'confirmed' },
-    { id: 'pending', label: 'pending' },
+];
+
+const paymentSources = [
+    { id: 'mpesa', label: 'mpesa' },
+    { id: 'copilot', label: 'copilot' },
+    { id: 'bank-statement', label: 'bank statement' },
+    { id: 'manual', label: 'manual' },
 ];
 
 const FilterItem: React.FC<{ title: string; children: React.ReactNode; isOpen?: boolean }> = ({ title, children, isOpen = true }) => {
@@ -44,55 +33,20 @@ const FilterItem: React.FC<{ title: string; children: React.ReactNode; isOpen?: 
     );
 };
 
-const PaymentsFiltersPanel: React.FC<PaymentsFiltersPanelProps> = ({
-    searchTerm,
-    onSearchChange,
-    statusFilter,
-    onStatusChange,
-    properties,
-    propertyFilter,
-    onPropertyChange,
-    dateRange,
-    onDateRangeChange,
-    minAmount,
-    onMinAmountChange,
-    maxAmount,
-    onMaxAmountChange
-}) => {
-
-    const handleStatusToggle = (status: string) => {
-        if (statusFilter.includes(status)) {
-            onStatusChange(statusFilter.filter(s => s !== status));
-        } else {
-            onStatusChange([...statusFilter, status]);
-        }
-    };
-
+const PaymentsFiltersPanel: React.FC = () => {
     return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
             <div className="p-4 border-b border-gray-200 flex justify-between items-center">
                 <h3 className="font-semibold text-blue-800 text-lg">Filters</h3>
-                <button 
-                    onClick={() => {
-                        onSearchChange('');
-                        onStatusChange(['confirmed']);
-                        onPropertyChange('');
-                        onDateRangeChange({ start: '', end: '' });
-                        onMinAmountChange('');
-                        onMaxAmountChange('');
-                    }}
-                    className="text-blue-800 hover:text-blue-900 text-xs font-medium"
-                >
-                    Clear All
+                <button className="text-blue-800 hover:text-blue-900 font-bold text-xl">
+                    -
                 </button>
             </div>
             <div className="p-4">
                 <div className="relative mb-4">
                     <input
                         type="search"
-                        value={searchTerm}
-                        onChange={(e) => onSearchChange(e.target.value)}
-                        placeholder="Search ID, Tenant..."
+                        placeholder="Type to search..."
                         className="w-full bg-white border border-gray-300 rounded-md py-2 pl-4 pr-10 text-sm focus:ring-blue-500 focus:border-blue-500"
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -104,67 +58,59 @@ const PaymentsFiltersPanel: React.FC<PaymentsFiltersPanelProps> = ({
 
                 <FilterItem title="Date">
                     <div className="space-y-2">
-                        <input 
-                            type="date" 
-                            value={dateRange.start}
-                            onChange={(e) => onDateRangeChange({ ...dateRange, start: e.target.value })}
-                            className="w-full text-sm border-gray-300 rounded-md text-gray-500" 
-                        />
-                        <input 
-                            type="date" 
-                            value={dateRange.end}
-                            onChange={(e) => onDateRangeChange({ ...dateRange, end: e.target.value })}
-                            className="w-full text-sm border-gray-300 rounded-md text-gray-500" 
-                        />
+                        <input type="text" placeholder="Start Date" className="w-full text-sm border-gray-300 rounded-md text-gray-500" />
+                        <input type="text" placeholder="End Date" className="w-full text-sm border-gray-300 rounded-md text-gray-500" />
                     </div>
                 </FilterItem>
 
                 <FilterItem title="Amount">
                     <div className="flex items-center space-x-2">
-                        <input 
-                            type="number" 
-                            placeholder="min" 
-                            value={minAmount}
-                            onChange={(e) => onMinAmountChange(e.target.value)}
-                            className="w-full text-sm border-gray-300 rounded-md" 
-                        />
-                        <input 
-                            type="number" 
-                            placeholder="max" 
-                            value={maxAmount}
-                            onChange={(e) => onMaxAmountChange(e.target.value)}
-                            className="w-full text-sm border-gray-300 rounded-md" 
-                        />
+                        <input type="text" placeholder="min" className="w-full text-sm border-gray-300 rounded-md" />
+                        <input type="text" placeholder="max" className="w-full text-sm border-gray-300 rounded-md" />
                     </div>
                 </FilterItem>
 
                 <FilterItem title="Payment status">
                     <div className="space-y-2">
                         {paymentStatuses.map(status => (
-                            <label key={status.id} className="flex items-center cursor-pointer">
+                            <label key={status.id} className="flex items-center">
                                 <input
                                     type="checkbox"
                                     className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                    checked={statusFilter.includes(status.id)}
-                                    onChange={() => handleStatusToggle(status.id)}
                                 />
-                                <span className="ml-2 text-sm text-gray-600 capitalize">{status.label}</span>
+                                <span className="ml-2 text-sm text-gray-600">{status.label}</span>
+                            </label>
+                        ))}
+                    </div>
+                </FilterItem>
+
+                <FilterItem title="Payment source">
+                    <div className="space-y-2">
+                        {paymentSources.map(source => (
+                            <label key={source.id} className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="ml-2 text-sm text-gray-600">{source.label}</span>
                             </label>
                         ))}
                     </div>
                 </FilterItem>
 
                 <FilterItem title="Property / Unit">
-                     <select 
-                        value={propertyFilter}
-                        onChange={(e) => onPropertyChange(e.target.value)}
-                        className="w-full text-sm border-gray-300 rounded-md bg-gray-50 text-gray-600"
-                    >
-                        <option value="">All Properties</option>
-                        {properties.map(p => (
-                            <option key={p.id} value={p.name}>{p.name}</option>
-                        ))}
+                     <select className="w-full text-sm border-gray-300 rounded-md bg-gray-50 text-gray-600">
+                        <option>All Properties</option>
+                        <option>Sunset Apartments</option>
+                        <option>Lakeside Villas</option>
                     </select>
+                </FilterItem>
+
+                <FilterItem title="Unassigned payments">
+                    <label className="flex items-center">
+                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                        <span className="ml-2 text-sm text-gray-600">Show</span>
+                    </label>
                 </FilterItem>
             </div>
         </div>

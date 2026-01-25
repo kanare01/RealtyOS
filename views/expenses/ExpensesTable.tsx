@@ -1,13 +1,11 @@
 
 import React from 'react';
-import { Expense } from '../../types';
+import { useData } from '../../contexts/DataContext';
 import Badge from '../../components/shared/Badge';
 
-interface ExpensesTableProps {
-    expenses: Expense[];
-}
+const ExpensesTable: React.FC = () => {
+    const { expenses } = useData();
 
-const ExpensesTable: React.FC<ExpensesTableProps> = ({ expenses }) => {
     return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
             <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-lg">
@@ -53,15 +51,15 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({ expenses }) => {
                                    {expense.amount.toLocaleString()}
                                </td>
                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                   <button onClick={() => alert("Edit not implemented")} className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                                   <button onClick={() => alert("Delete not implemented")} className="text-red-600 hover:text-red-900">Delete</button>
+                                   <button className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                                   <button className="text-red-600 hover:text-red-900">Delete</button>
                                </td>
                            </tr>
                        ))}
                        {expenses.length === 0 && (
                            <tr>
                                <td colSpan={6} className="px-6 py-10 text-center text-gray-500">
-                                   No expenses found matching your criteria.
+                                   No expenses recorded yet.
                                </td>
                            </tr>
                        )}

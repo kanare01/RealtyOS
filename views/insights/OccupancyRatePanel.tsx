@@ -1,11 +1,5 @@
 
-import React, { useMemo } from 'react';
-import { useData } from '../../contexts/DataContext';
-import { View } from '../../types';
-
-interface OccupancyRatePanelProps {
-    setCurrentView: (view: View) => void;
-}
+import React from 'react';
 
 const SummaryCard: React.FC<{ title: string; value: string; subtext: string; highlight?: boolean }> = ({ title, value, subtext, highlight }) => (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 flex-1">
@@ -17,60 +11,19 @@ const SummaryCard: React.FC<{ title: string; value: string; subtext: string; hig
     </div>
 );
 
-const OccupancyRatePanel: React.FC<OccupancyRatePanelProps> = ({ setCurrentView }) => {
-    const { properties, units } = useData();
-
-    const data = useMemo(() => {
-        let totalVacancies = 0;
-        let totalOccupied = 0;
-        let totalUnitsCount = units.length;
-
-        const propertyStats = properties.map(prop => {
-            const propUnits = units.filter(u => u.propertyName === prop.name);
-            const total = propUnits.length;
-            const occupied = propUnits.filter(u => u.status === 'Occupied').length;
-            const vacant = total - occupied;
-            const rentLost = propUnits.filter(u => u.status === 'Vacant').reduce((sum, u) => sum + u.rentAmount, 0);
-            const occupancyRate = total > 0 ? (occupied / total) * 100 : 0;
-
-            totalVacancies += vacant;
-            totalOccupied += occupied;
-
-            return {
-                name: prop.name,
-                unoccupied: vacant,
-                total: total,
-                rentLost: rentLost,
-                rate: occupancyRate
-            };
-        });
-
-        // Sort by rent lost descending by default to highlight revenue impact
-        propertyStats.sort((a, b) => b.rentLost - a.rentLost);
-
-        const overallOccupancyRate = totalUnitsCount > 0 ? ((totalOccupied / totalUnitsCount) * 100).toFixed(1) : '0';
-
-        return {
-            totalVacancies,
-            totalOccupied,
-            totalUnitsCount,
-            overallOccupancyRate,
-            rows: propertyStats
-        };
-    }, [properties, units]);
-
+const OccupancyRatePanel: React.FC = () => {
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row gap-6">
                 <SummaryCard 
                     title="Total Vacancies" 
-                    value={data.totalVacancies.toString()} 
-                    subtext={`${data.totalUnitsCount} total units | ${data.overallOccupancyRate}% Occupied`}
+                    value="0" 
+                    subtext="1 total units | 100.0% Occupied"
                 />
                 <SummaryCard 
                     title="Occupied Units" 
-                    value={data.totalOccupied.toString()} 
-                    subtext={`${properties.length} Total Properties`}
+                    value="1" 
+                    subtext="1 Total Properties"
                     highlight
                 />
             </div>
@@ -93,65 +46,64 @@ const OccupancyRatePanel: React.FC<OccupancyRatePanelProps> = ({ setCurrentView 
                                 <th className="p-4 cursor-pointer hover:text-gray-700">
                                     <div className="flex items-center">
                                         Property Name
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                        </svg>
                                     </div>
                                 </th>
                                 <th className="p-4 cursor-pointer hover:text-gray-700">
                                     <div className="flex items-center">
                                         # Units Unoccupied
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                        </svg>
                                     </div>
                                 </th>
                                 <th className="p-4 cursor-pointer hover:text-gray-700">
                                     <div className="flex items-center">
                                         Total Units
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                        </svg>
                                     </div>
                                 </th>
                                 <th className="p-4">
                                      <div className="flex items-center">
                                         Estimated Rent Lost
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
                                     </div>
                                 </th>
                                 <th className="p-4 cursor-pointer hover:text-gray-700">
                                      <div className="flex items-center">
                                         Occupancy Rate
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                        </svg>
                                     </div>
                                 </th>
                                 <th className="p-4">Options</th>
                             </tr>
                         </thead>
                         <tbody className="text-gray-600">
-                            {data.rows.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="p-8 text-center text-gray-500">No property data available.</td>
-                                </tr>
-                            ) : (
-                                data.rows.map((row, idx) => (
-                                    <tr key={idx} className="hover:bg-gray-50 border-b border-gray-50">
-                                        <td className="p-4">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                            </svg>
-                                        </td>
-                                        <td 
-                                            className="p-4 text-[#1a237e] cursor-pointer hover:underline"
-                                            onClick={() => setCurrentView('Properties')}
-                                        >
-                                            {row.name}
-                                        </td>
-                                        <td className="p-4"><span className={`px-2 py-1 rounded border border-gray-200 text-xs font-bold ${row.unoccupied > 0 ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600'}`}>{row.unoccupied}</span></td>
-                                        <td className="p-4 text-[#1a237e]">{row.total}</td>
-                                        <td className="p-4 text-gray-500">KES {row.rentLost.toLocaleString()}</td>
-                                        <td className={`p-4 font-bold ${row.rate === 100 ? 'text-green-600' : row.rate < 50 ? 'text-red-600' : 'text-yellow-600'}`}>{row.rate.toFixed(1)}%</td>
-                                        <td className="p-4">
-                                            <button 
-                                                className="text-[#1a237e] hover:text-blue-900 text-xs font-medium"
-                                                onClick={() => setCurrentView('Units')}
-                                            >
-                                                View Units
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
+                             <tr className="hover:bg-gray-50 border-b border-gray-50">
+                                <td className="p-4">
+                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </td>
+                                <td className="p-4 text-[#1a237e]">kanari Apartments</td>
+                                <td className="p-4"><span className="bg-gray-100 px-2 py-1 rounded border border-gray-200 text-xs text-gray-600 font-bold">0</span></td>
+                                <td className="p-4 text-[#1a237e]">1</td>
+                                <td className="p-4 text-gray-500">KES 0.00</td>
+                                <td className="p-4 font-bold text-green-600">100.0%</td>
+                                <td className="p-4">
+                                     <select className="border-gray-300 rounded text-sm p-1 bg-white focus:ring-[#1a237e] focus:border-[#1a237e]">
+                                        <option>Options</option>
+                                    </select>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>

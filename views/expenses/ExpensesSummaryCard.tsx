@@ -1,12 +1,9 @@
 
 import React from 'react';
-import { Expense } from '../../types';
+import { useData } from '../../contexts/DataContext';
 
-interface ExpensesSummaryCardProps {
-    expenses: Expense[];
-}
-
-const ExpensesSummaryCard: React.FC<ExpensesSummaryCardProps> = ({ expenses }) => {
+const ExpensesSummaryCard: React.FC = () => {
+    const { expenses } = useData();
     const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
     return (
@@ -21,7 +18,7 @@ const ExpensesSummaryCard: React.FC<ExpensesSummaryCardProps> = ({ expenses }) =
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-200">
                 <div className="p-6 text-center">
-                    <p className="text-sm font-medium text-gray-500 mb-1">Total Expenses (Selected)</p>
+                    <p className="text-sm font-medium text-gray-500 mb-1">Total Expenses (Oct)</p>
                     <p className="text-3xl font-bold text-gray-800">{totalAmount.toLocaleString()}</p>
                     <p className="text-xs text-gray-400 mt-1">KES</p>
                 </div>
