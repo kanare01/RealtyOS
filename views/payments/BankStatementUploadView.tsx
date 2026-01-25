@@ -1,39 +1,30 @@
 
 import React, { useState } from 'react';
 import { View } from '../../types';
-import { useData } from '../../contexts/DataContext';
 
 interface BankStatementUploadViewProps {
     setCurrentView: (view: View) => void;
 }
 
 const BankStatementUploadView: React.FC<BankStatementUploadViewProps> = ({ setCurrentView }) => {
-    const { uploadFile } = useData();
     const [file, setFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
-    const [message, setMessage] = useState('');
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             setFile(e.target.files[0]);
-            setMessage('');
         }
     };
 
-    const handleUpload = async () => {
+    const handleUpload = () => {
         if (!file) return;
         setIsUploading(true);
-        setMessage('');
-
-        const result = await uploadFile(file, 'bank_statements');
-        
-        setIsUploading(false);
-        if (result.success) {
-            setMessage('File uploaded successfully! Processing started.');
-            setTimeout(() => setCurrentView('Payments'), 2000);
-        } else {
-            setMessage(`Upload failed: ${result.message}`);
-        }
+        // Simulate upload delay
+        setTimeout(() => {
+            setIsUploading(false);
+            alert('File uploaded successfully! Payments will be processed in background.');
+            setCurrentView('Payments');
+        }, 2000);
     };
 
     return (
@@ -67,12 +58,6 @@ const BankStatementUploadView: React.FC<BankStatementUploadViewProps> = ({ setCu
                         <p className="text-xs text-gray-500">Supported formats: CSV, PDF, XLS</p>
                     </div>
                 </div>
-
-                {message && (
-                    <div className={`mt-4 p-3 text-sm rounded ${message.includes('success') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {message}
-                    </div>
-                )}
 
                 <div className="mt-6 flex justify-end">
                     <button 

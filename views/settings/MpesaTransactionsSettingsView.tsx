@@ -1,24 +1,36 @@
 
 import React, { useState, useEffect } from 'react';
 import { View } from '../../types';
-import { useData } from '../../contexts/DataContext';
 
 interface MpesaTransactionsSettingsViewProps {
     setCurrentView: (view: View) => void;
 }
 
+interface MpesaTransaction {
+    id: number;
+    reference: string;
+    status: 'Completed' | 'Failed' | 'Pending';
+    description: string;
+    shortcode: string;
+    date: string;
+    amount: number;
+    tenant: string;
+}
+
+const mockTransactions: MpesaTransaction[] = [
+    { id: 1, reference: 'QKA45289', status: 'Completed', description: 'Rent Payment - Oct', shortcode: '247247', date: '2025-10-20 14:30', amount: 15000, tenant: 'John Doe' },
+    { id: 2, reference: 'QKA45290', status: 'Completed', description: 'Water Bill', shortcode: '247247', date: '2025-10-20 15:15', amount: 500, tenant: 'Jane Smith' },
+    { id: 3, reference: 'QKA45291', status: 'Failed', description: 'Invalid Account', shortcode: '247247', date: '2025-10-21 09:00', amount: 15000, tenant: 'Unknown' },
+    { id: 4, reference: 'QKA45292', status: 'Pending', description: 'Processing...', shortcode: '888000', date: '2025-10-21 10:45', amount: 20000, tenant: 'Alice Cooper' },
+    { id: 5, reference: 'QKA45293', status: 'Completed', description: 'Rent Payment - Oct', shortcode: '247247', date: '2025-10-21 11:20', amount: 12000, tenant: 'Bob Brown' },
+];
+
 const MpesaTransactionsSettingsView: React.FC<MpesaTransactionsSettingsViewProps> = ({ setCurrentView }) => {
-    const { mpesaTransactions, refreshMpesaTransactions } = useData();
+    const [transactions, setTransactions] = useState<MpesaTransaction[]>(mockTransactions);
     const [shortcode, setShortcode] = useState('');
     const [reference, setReference] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [notification, setNotification] = useState<{message: string, type: 'success' | 'info'} | null>(null);
-    const [filteredTransactions, setFilteredTransactions] = useState(mpesaTransactions);
-
-    // Sync initial data
-    useEffect(() => {
-        setFilteredTransactions(mpesaTransactions);
-    }, [mpesaTransactions]);
 
     const settingsMenu: { label: string; view: View }[] = [
         { label: 'General', view: 'General' },
@@ -41,7 +53,7 @@ const MpesaTransactionsSettingsView: React.FC<MpesaTransactionsSettingsViewProps
     const handleSearch = () => {
         setIsLoading(true);
         setTimeout(() => {
-            let filtered = mpesaTransactions;
+            let filtered = mockTransactions;
 
             if (shortcode) {
                 filtered = filtered.filter(t => t.shortcode.includes(shortcode));
@@ -50,19 +62,22 @@ const MpesaTransactionsSettingsView: React.FC<MpesaTransactionsSettingsViewProps
                 filtered = filtered.filter(t => t.reference.toLowerCase().includes(reference.toLowerCase()));
             }
 
-            setFilteredTransactions(filtered);
+            setTransactions(filtered);
             setIsLoading(false);
             showNotificationMsg(`Found ${filtered.length} transaction(s).`, 'success');
-        }, 500);
+        }, 800);
     };
 
-    const handleRefresh = async () => {
+    const handleRefresh = () => {
         setIsLoading(true);
-        await refreshMpesaTransactions();
-        setShortcode('');
-        setReference('');
-        setIsLoading(false);
-        showNotificationMsg('Transactions refreshed from API.', 'success');
+        // Simulate network fetch
+        setTimeout(() => {
+            setTransactions(mockTransactions);
+            setShortcode('');
+            setReference('');
+            setIsLoading(false);
+            showNotificationMsg('Transactions refreshed.', 'success');
+        }, 1000);
     };
 
     const getStatusBadge = (status: string) => {
@@ -186,8 +201,8 @@ const MpesaTransactionsSettingsView: React.FC<MpesaTransactionsSettingsViewProps
                                         </tr>
                                     </thead>
                                     <tbody className="text-gray-600">
-                                        {filteredTransactions.length > 0 ? (
-                                            filteredTransactions.map((tx) => (
+                                        {transactions.length > 0 ? (
+                                            transactions.map((tx) => (
                                                 <tr key={tx.id} className="border-b border-gray-100 hover:bg-gray-50">
                                                     <td className="p-3 border-r border-gray-200 text-[#1a237e] font-mono text-xs">{tx.reference}</td>
                                                     <td className="p-3 border-r border-gray-200">{getStatusBadge(tx.status)}</td>
@@ -195,7 +210,7 @@ const MpesaTransactionsSettingsView: React.FC<MpesaTransactionsSettingsViewProps
                                                     <td className="p-3 border-r border-gray-200 text-xs font-mono">{tx.shortcode}</td>
                                                     <td className="p-3 border-r border-gray-200 text-xs">{tx.date}</td>
                                                     <td className="p-3 border-r border-gray-200 text-right font-medium">{tx.amount.toLocaleString()}</td>
-                                                    <td className="p-3 font-medium">{tx.tenant || '-'}</td>
+                                                    <td className="p-3 font-medium">{tx.tenant}</td>
                                                 </tr>
                                             ))
                                         ) : (
@@ -210,7 +225,7 @@ const MpesaTransactionsSettingsView: React.FC<MpesaTransactionsSettingsViewProps
                             </div>
                             
                             <div className="mt-4 text-sm text-gray-500">
-                                Showing {filteredTransactions.length} result(s)
+                                Showing {transactions.length} result(s)
                             </div>
                         </div>
                     </div>

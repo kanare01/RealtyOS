@@ -7,7 +7,7 @@ interface UnitFormViewProps {
     setCurrentView: (view: View) => void;
 }
 
-// Helper component
+// Helper component moved outside
 const FormRow = ({ label, subLabel, children, helpIcon = false }: { label: string, subLabel?: string, children?: React.ReactNode, helpIcon?: boolean }) => (
     <div className="flex flex-col md:flex-row md:items-start mb-6">
         <div className="w-full md:w-1/3 text-left md:text-right pr-6 mb-2 md:mb-0 pt-2.5">
@@ -28,7 +28,7 @@ const FormRow = ({ label, subLabel, children, helpIcon = false }: { label: strin
 );
 
 const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
-    const { properties, addUnit, addUnits, editingUnit, updateUnit, setEditingUnit, addNotification, units } = useData();
+    const { properties, addUnit, addUnits, editingUnit, updateUnit, setEditingUnit } = useData();
     
     // Form Fields
     const [selectedProperty, setSelectedProperty] = useState('');
@@ -46,11 +46,13 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
     const [rentAmount, setRentAmount] = useState('');
     const [taxRate, setTaxRate] = useState('');
     
-    // Recurring Bills State
+    // Recurring Bills State (Simple implementation for UI based on screenshot)
     const [billType, setBillType] = useState('');
     const [billAmount, setBillAmount] = useState('');
     
     const [notes, setNotes] = useState('');
+    
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
 
     // Initialize selected property and pre-fill if editing
@@ -67,7 +69,7 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
                 setBillType(editingUnit.recurringBills[0].type);
                 setBillAmount(editingUnit.recurringBills[0].amount.toString());
             }
-            setIsBulkMode(false); 
+            setIsBulkMode(false); // Can't bulk edit in this form structure yet
         } else if (properties.length > 0 && !selectedProperty) {
             setSelectedProperty(properties[0].name);
         }
@@ -91,9 +93,9 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
         setIsSubmitted(false);
     };
 
-    const handleSave = async () => {
+    const handleSave = () => {
         if (!selectedProperty) {
-            addNotification("Please select a property", 'error');
+            alert("Please select a property");
             return;
         }
 
@@ -103,7 +105,7 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
 
         // --- Editing Logic ---
         if (editingUnit) {
-             await updateUnit({
+             updateUnit({
                 ...editingUnit,
                 propertyId: propObj?.id || editingUnit.propertyId,
                 propertyName: selectedProperty,
@@ -114,16 +116,19 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
                 notes,
                 recurringBills
             });
-            addNotification('Unit updated successfully', 'success');
-            setEditingUnit(null);
-            setCurrentView('Units');
+            setShowSuccessModal(true);
+            setTimeout(() => {
+                setShowSuccessModal(false);
+                setEditingUnit(null);
+                setCurrentView('Units');
+            }, 2000);
             return;
         }
 
         // --- Creation Logic ---
         if (isBulkMode) {
             if (!startNumber || !endNumber) {
-                addNotification("Please enter Starting Number and Ending Number", 'error');
+                alert("Please enter Starting Number and Ending Number");
                 return;
             }
 
@@ -131,12 +136,12 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
             const end = parseInt(endNumber);
 
             if (isNaN(start) || isNaN(end)) {
-                addNotification("Starting and Ending numbers must be valid integers", 'error');
+                alert("Starting and Ending numbers must be valid integers");
                 return;
             }
 
             if (start > end) {
-                addNotification("Starting Number cannot be greater than Ending Number", 'error');
+                alert("Starting Number cannot be greater than Ending Number");
                 return;
             }
 
@@ -149,7 +154,7 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
             for (let i = start; i <= end; i++) {
                 const name = `${prefix}${i}`;
                 unitsToAdd.push({
-                    id: Date.now() + i,
+                    id: Date.now() + i, // Unique ID generation strategy
                     propertyId: propObj?.id || 0,
                     propertyName: selectedProperty,
                     name: name,
@@ -162,17 +167,16 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
                     recurringBills
                 });
             }
-            await addUnits(unitsToAdd);
-            addNotification(`${count} units created successfully`, 'success');
+            addUnits(unitsToAdd);
 
         } else {
             // Single Create
             if (!unitId || !rentAmount) {
-                addNotification("Please fill in the required fields (Property, Unit ID, Rent Amount)", 'error');
+                alert("Please fill in the required fields (Property, Unit ID, Rent Amount)");
                 return;
             }
 
-            await addUnit({
+            addUnit({
                 id: Date.now(),
                 propertyId: propObj?.id || 0,
                 propertyName: selectedProperty,
@@ -185,10 +189,13 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
                 notes,
                 recurringBills
             });
-            addNotification('Unit added successfully', 'success');
         }
 
         setIsSubmitted(true);
+        setShowSuccessModal(true);
+        setTimeout(() => {
+            setShowSuccessModal(false);
+        }, 3000);
     };
 
     const handleAddAnother = () => {
@@ -196,6 +203,7 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
         setPrefix('');
         setStartNumber('');
         setEndNumber('');
+        // Keep rent/property/category selected for ease of entry
         setIsSubmitted(false);
     };
 
@@ -212,31 +220,26 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
         setCurrentView('Units');
     };
 
-    // --- Empty State Check ---
-    if (properties.length === 0) {
-        return (
-            <div className="w-full max-w-3xl mx-auto mt-20 text-center animate-fadeIn">
-                <div className="bg-white border border-gray-200 rounded-lg p-10 shadow-sm">
-                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#1a237e]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                    </div>
-                    <h2 className="text-xl font-bold text-gray-800 mb-2">No Properties Found</h2>
-                    <p className="text-gray-500 mb-6">You need to add a property before you can create units.</p>
-                    <button 
-                        onClick={() => setCurrentView('PropertyForm')}
-                        className="bg-[#1a237e] text-white px-6 py-2.5 rounded font-medium hover:bg-blue-900 transition-colors"
-                    >
-                        Create Property
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div className="animate-fadeIn w-full max-w-5xl mx-auto pb-20 relative px-4 md:px-0">
+            {showSuccessModal && (
+                <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md animate-fadeIn">
+                    <div className="bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-200">
+                        <div className="bg-[#DCEDC8] px-6 py-3 flex items-center border-b border-[#C5E1A5]">
+                            <svg className="w-5 h-5 text-[#33691E] mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                            <h3 className="text-sm font-semibold text-[#33691E]">Success</h3>
+                        </div>
+                        <div className="p-8 text-center bg-white">
+                            <p className="text-[#1B5E20] text-lg font-medium">
+                                {editingUnit 
+                                    ? 'Unit Updated Successfully' 
+                                    : (isBulkMode ? 'Units Added Successfully' : 'Unit Added Successfully')}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="mb-4">
                 <button 
                     onClick={handleBack}
@@ -258,6 +261,7 @@ const UnitFormView: React.FC<UnitFormViewProps> = ({ setCurrentView }) => {
                         onChange={(e) => setSelectedProperty(e.target.value)}
                         className="w-full border-gray-200 rounded-sm shadow-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm p-2 bg-gray-50 border"
                     >
+                        {properties.length === 0 && <option value="">No properties available</option>}
                         {properties.map(prop => (
                             <option key={prop.id} value={prop.name}>{prop.name}</option>
                         ))}

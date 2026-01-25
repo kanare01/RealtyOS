@@ -8,7 +8,7 @@ interface MaintenanceFormViewProps {
 }
 
 const MaintenanceFormView: React.FC<MaintenanceFormViewProps> = ({ setCurrentView }) => {
-    const { properties, getUnitsByProperty, addMaintenanceRequest, updateMaintenanceRequest, editingMaintenanceRequest, addNotification } = useData();
+    const { properties, getUnitsByProperty, addMaintenanceRequest, updateMaintenanceRequest, editingMaintenanceRequest } = useData();
     
     const [property, setProperty] = useState('');
     const [unit, setUnit] = useState('');
@@ -44,7 +44,7 @@ const MaintenanceFormView: React.FC<MaintenanceFormViewProps> = ({ setCurrentVie
 
     const handleSubmit = () => {
         if (!property || !title || !date) {
-            addNotification("Please fill in Property, Title, and Date.", 'error');
+            alert("Please fill in Property, Title, and Date.");
             return;
         }
 
@@ -64,10 +64,10 @@ const MaintenanceFormView: React.FC<MaintenanceFormViewProps> = ({ setCurrentVie
 
         if (editingMaintenanceRequest) {
             updateMaintenanceRequest(requestData);
-            addNotification("Maintenance request updated successfully!", 'success');
+            alert("Maintenance request updated successfully!");
         } else {
             addMaintenanceRequest(requestData);
-            addNotification("Maintenance request created successfully!", 'success');
+            alert("Maintenance request created successfully!");
         }
         
         setCurrentView('Maintenance');

@@ -51,26 +51,19 @@ const navConfig: NavItemConfig[] = [
         { view: 'Billing', label: 'Billing' },
         { view: 'MPESA Transactions', label: 'MPESA Transactions' },
         { view: 'Audit Trail', label: 'Audit Trail' },
-        { view: 'User Feedback', label: 'User Feedback' },
     ]
   },
+  // FIX: Add Foundation view for technical stakeholders
   { view: 'Foundation', label: 'Foundation', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 01-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg> },
 ];
 
 const Sidebar: React.FC<{
   currentView: View;
   setCurrentView: (view: View) => void;
-  isCollapsed?: boolean;
-  toggleCollapse?: () => void;
-}> = ({ currentView, setCurrentView, isCollapsed = false, toggleCollapse }) => {
+}> = ({ currentView, setCurrentView }) => {
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
   const toggleMenu = (label: string) => {
-    if (isCollapsed && toggleCollapse) {
-        toggleCollapse();
-        setTimeout(() => setOpenMenus(prev => ({ ...prev, [label]: true })), 50);
-        return;
-    }
     setOpenMenus(prev => ({ ...prev, [label]: !prev[label] }));
   };
 
@@ -81,14 +74,10 @@ const Sidebar: React.FC<{
   const NavButton: React.FC<{item: NavItemConfig}> = ({ item }) => {
     const isActive = currentView === item.view;
     return (
-        <button 
-            onClick={() => setCurrentView(item.view)} 
-            className={`relative flex items-center w-full text-left p-2.5 my-1 rounded-lg transition-all duration-200 group ${ isActive ? 'bg-white/10 text-white' : 'text-blue-100 hover:bg-white/5'}`}
-            title={isCollapsed ? item.label : ''}
-        >
+        <button onClick={() => setCurrentView(item.view)} className={`relative flex items-center w-full text-left p-2.5 my-1 rounded-lg transition-colors duration-200 ${ isActive ? 'bg-white/10 text-white' : 'text-blue-100 hover:bg-white/5'}`}>
             {isActive && <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-300 rounded-r-full"></span>}
-            <span className={`flex-shrink-0 ${isCollapsed ? 'mx-auto' : 'mr-3'}`}>{item.icon}</span>
-            {!isCollapsed && <span className="font-medium text-sm truncate">{item.label}</span>}
+            <span className="mr-3">{item.icon}</span>
+            <span className="font-medium text-sm">{item.label}</span>
         </button>
     );
   };
@@ -103,40 +92,25 @@ const Sidebar: React.FC<{
   };
 
   return (
-    <aside className={`${isCollapsed ? 'w-20' : 'w-64'} bg-[#1a237e] flex flex-col p-3 text-white transition-all duration-300 h-full border-r border-[#1a237e]`}>
-      <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between px-2'} mb-6 pt-3`}>
-        {!isCollapsed && <h2 className="text-2xl font-bold truncate">RealtyOS</h2>}
-        {toggleCollapse && (
-            <button onClick={toggleCollapse} className="text-blue-200 hover:text-white p-1 rounded-md hover:bg-white/10">
-                {isCollapsed ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
-                ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>
-                )}
-            </button>
-        )}
+    <aside className="w-64 bg-[#1a237e] flex flex-col p-3 text-white">
+      <div className="flex items-center justify-center mb-6 pt-3">
+        <h2 className="text-2xl font-bold">RealtyOS</h2>
       </div>
 
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-blue-900 scrollbar-track-transparent">
+      <nav className="flex-1 overflow-y-auto">
         <ul className="space-y-1">
           {navConfig.map(item => (
             <li key={item.label}>
               {item.children ? (
                 <>
-                  <button 
-                    onClick={() => toggleMenu(item.label)} 
-                    className={`flex items-center w-full text-left p-2.5 rounded-lg transition-colors duration-200 ${ isChildActive(item) ? 'text-white' : 'text-blue-100 hover:bg-white/5'} ${isCollapsed ? 'justify-center' : 'justify-between'}`}
-                    title={isCollapsed ? item.label : ''}
-                  >
+                  <button onClick={() => toggleMenu(item.label)} className={`flex items-center justify-between w-full text-left p-2.5 rounded-lg transition-colors duration-200 ${ isChildActive(item) ? 'text-white' : 'text-blue-100 hover:bg-white/5'}`}>
                     <div className="flex items-center">
-                      <span className={`flex-shrink-0 ${isCollapsed ? '' : 'mr-3'}`}>{item.icon}</span>
-                      {!isCollapsed && <span className="font-medium text-sm truncate">{item.label}</span>}
+                      <span className="mr-3">{item.icon}</span>
+                      <span className="font-medium text-sm">{item.label}</span>
                     </div>
-                    {!isCollapsed && (
-                        <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 transition-transform duration-300 ${openMenus[item.label] ? 'rotate-0' : '-rotate-90'}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                    )}
+                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 transition-transform duration-300 ${openMenus[item.label] ? 'rotate-0' : '-rotate-90'}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                   </button>
-                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${!isCollapsed && openMenus[item.label] ? 'max-h-96' : 'max-h-0'}`}>
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${openMenus[item.label] ? 'max-h-96' : 'max-h-0'}`}>
                     <ul className="pt-1 pb-2 pl-10 space-y-1">
                       {item.children.map(child => (
                         <li key={child.label}>

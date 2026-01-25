@@ -2,26 +2,12 @@
 import React from 'react';
 import { RecurringExpense } from '../../types';
 import Badge from '../../components/shared/Badge';
-import { useData } from '../../contexts/DataContext';
 
 interface RecurringExpensesTableProps {
     expenses: RecurringExpense[];
 }
 
 const RecurringExpensesTable: React.FC<RecurringExpensesTableProps> = ({ expenses }) => {
-    const { updateRecurringExpense, deleteRecurringExpense, currentUser } = useData();
-
-    const handleToggleStatus = (expense: RecurringExpense) => {
-        const newStatus = expense.status === 'Active' ? 'Stopped' : 'Active';
-        updateRecurringExpense({ ...expense, status: newStatus });
-    };
-
-    const handleDelete = (id: number) => {
-        if (confirm("Are you sure you want to delete this recurring schedule?")) {
-            deleteRecurringExpense(id);
-        }
-    };
-
     return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
             <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-lg">
@@ -66,20 +52,8 @@ const RecurringExpensesTable: React.FC<RecurringExpensesTableProps> = ({ expense
                                    {expense.amount.toLocaleString()}
                                </td>
                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                   <button 
-                                        onClick={() => handleToggleStatus(expense)} 
-                                        className={`${expense.status === 'Active' ? 'text-yellow-600 hover:text-yellow-800' : 'text-green-600 hover:text-green-800'} mr-3`}
-                                    >
-                                        {expense.status === 'Active' ? 'Pause' : 'Resume'}
-                                    </button>
-                                    {currentUser?.role === 'Admin' && (
-                                        <button 
-                                            onClick={() => handleDelete(expense.id)} 
-                                            className="text-red-600 hover:text-red-900"
-                                        >
-                                            Delete
-                                        </button>
-                                    )}
+                                   <button onClick={() => alert("Edit not implemented")} className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                                   <button onClick={() => alert("Pause not implemented")} className="text-gray-500 hover:text-gray-700">Pause</button>
                                </td>
                            </tr>
                        ))}

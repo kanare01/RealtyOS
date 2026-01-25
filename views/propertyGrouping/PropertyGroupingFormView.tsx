@@ -8,7 +8,7 @@ interface PropertyGroupingFormViewProps {
 }
 
 const PropertyGroupingFormView: React.FC<PropertyGroupingFormViewProps> = ({ setCurrentView }) => {
-    const { properties, addPropertyGrouping, updatePropertyGrouping, editingPropertyGrouping, addNotification } = useData();
+    const { properties, addPropertyGrouping, updatePropertyGrouping, editingPropertyGrouping } = useData();
     
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
@@ -34,7 +34,7 @@ const PropertyGroupingFormView: React.FC<PropertyGroupingFormViewProps> = ({ set
 
     const handleSubmit = () => {
         if (!name) {
-            addNotification("Please provide a grouping name.", 'error');
+            alert("Please provide a grouping name.");
             return;
         }
 
@@ -48,10 +48,10 @@ const PropertyGroupingFormView: React.FC<PropertyGroupingFormViewProps> = ({ set
 
         if (editingPropertyGrouping) {
             updatePropertyGrouping(groupData);
-            addNotification("Property Grouping updated successfully!", 'success');
+            alert("Property Grouping updated successfully!");
         } else {
             addPropertyGrouping(groupData);
-            addNotification("Property Grouping created successfully!", 'success');
+            alert("Property Grouping created successfully!");
         }
         
         setCurrentView('Property Grouping');

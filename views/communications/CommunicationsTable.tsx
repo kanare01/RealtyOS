@@ -8,7 +8,7 @@ interface CommunicationsTableProps {
 }
 
 const CommunicationsTable: React.FC<CommunicationsTableProps> = ({ messages }) => {
-    const { addMessage, deleteMessage } = useData();
+    const { addMessage } = useData();
 
     const handleResend = (msg: Message) => {
         if (confirm("Resend this message?")) {
@@ -20,12 +20,6 @@ const CommunicationsTable: React.FC<CommunicationsTableProps> = ({ messages }) =
                 status: 'Pending'
             });
             alert("Message queued for resending.");
-        }
-    };
-
-    const handleDelete = (id: number) => {
-        if(confirm("Are you sure you want to delete this message log?")) {
-            deleteMessage(id);
         }
     };
 
@@ -89,21 +83,12 @@ const CommunicationsTable: React.FC<CommunicationsTableProps> = ({ messages }) =
                                             {msg.status}
                                         </span>
                                     </td>
-                                    <td className="p-3 flex items-center space-x-2">
+                                    <td className="p-3">
                                         <button 
                                             onClick={() => handleResend(msg)}
                                             className="text-xs text-blue-600 hover:underline"
                                         >
                                             Resend
-                                        </button>
-                                        <button 
-                                            onClick={() => handleDelete(msg.id)}
-                                            className="text-xs text-red-600 hover:underline"
-                                            title="Delete Log"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
                                         </button>
                                     </td>
                                 </tr>

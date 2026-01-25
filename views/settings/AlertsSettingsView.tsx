@@ -1,15 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View } from '../../types';
-import { useData } from '../../contexts/DataContext';
-import { API_BASE_URL } from '../../config';
 
 interface AlertsSettingsViewProps {
     setCurrentView: (view: View) => void;
 }
 
 const AlertsSettingsView: React.FC<AlertsSettingsViewProps> = ({ setCurrentView }) => {
-    const { addNotification } = useData();
+    // State
     const [paymentAlerts, setPaymentAlerts] = useState(false);
     const [receiveReports, setReceiveReports] = useState(true);
     const [reportFrequency, setReportFrequency] = useState({
@@ -17,33 +15,10 @@ const AlertsSettingsView: React.FC<AlertsSettingsViewProps> = ({ setCurrentView 
         weekly: false,
         daily: false
     });
+    
+    // UI State
     const [isSaving, setIsSaving] = useState(false);
-
-    useEffect(() => {
-        // Fetch current settings
-        const fetchSettings = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch(`${API_BASE_URL}/settings`, {
-                    headers: { 'Authorization': token ? `Bearer ${token}` : '' }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.alert_payment) setPaymentAlerts(data.alert_payment === 'true');
-                    if (data.alert_reports) setReceiveReports(data.alert_reports === 'true');
-                    
-                    setReportFrequency({
-                        monthly: data.report_freq_monthly === 'true',
-                        weekly: data.report_freq_weekly === 'true',
-                        daily: data.report_freq_daily === 'true'
-                    });
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        };
-        fetchSettings();
-    }, []);
+    const [notification, setNotification] = useState<{message: string, type: 'success' | 'info'} | null>(null);
 
     const settingsMenu: { label: string; view: View }[] = [
         { label: 'General', view: 'General' },
@@ -63,37 +38,19 @@ const AlertsSettingsView: React.FC<AlertsSettingsViewProps> = ({ setCurrentView 
         setReportFrequency(prev => ({ ...prev, [key]: !prev[key] }));
     };
 
-    const handleSaveSettings = async () => {
+    const showNotification = (message: string, type: 'success' | 'info') => {
+        setNotification({ message, type });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => setNotification(null), 3000);
+    };
+
+    const handleSaveSettings = () => {
         setIsSaving(true);
-        const payload = {
-            alert_payment: paymentAlerts.toString(),
-            alert_reports: receiveReports.toString(),
-            report_freq_monthly: reportFrequency.monthly.toString(),
-            report_freq_weekly: reportFrequency.weekly.toString(),
-            report_freq_daily: reportFrequency.daily.toString()
-        };
-
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/settings`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': token ? `Bearer ${token}` : '' 
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (res.ok) {
-                addNotification('Alert preferences updated successfully.', 'success');
-            } else {
-                addNotification('Failed to update settings.', 'error');
-            }
-        } catch (e) {
-            addNotification('Network error.', 'error');
-        } finally {
+        // Simulate API call
+        setTimeout(() => {
             setIsSaving(false);
-        }
+            showNotification('Alert preferences updated successfully.', 'success');
+        }, 800);
     };
 
     const handleRestoreDefaults = () => {
@@ -101,12 +58,25 @@ const AlertsSettingsView: React.FC<AlertsSettingsViewProps> = ({ setCurrentView 
             setPaymentAlerts(false);
             setReceiveReports(true);
             setReportFrequency({ monthly: true, weekly: false, daily: false });
-            addNotification('Default settings restored. Click Save to persist.', 'info');
+            showNotification('Default settings restored.', 'info');
         }
     };
 
     return (
         <div className="animate-fadeIn max-w-6xl mx-auto pb-20 relative">
+            {/* Notification Toast */}
+            {notification && (
+                <div className="fixed top-24 right-4 md:right-10 z-50 animate-fadeIn">
+                    <div className={`${notification.type === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 'bg-blue-100 border-blue-400 text-blue-700'} border px-4 py-3 rounded relative shadow-lg`} role="alert">
+                        <strong className="font-bold">{notification.type === 'success' ? 'Success!' : 'Info:'}</strong>
+                        <span className="block sm:inline"> {notification.message}</span>
+                        <button className="absolute top-0 bottom-0 right-0 px-4 py-3" onClick={() => setNotification(null)}>
+                            <svg className={`fill-current h-6 w-6 ${notification.type === 'success' ? 'text-green-500' : 'text-blue-500'}`} role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <div className="flex flex-col md:flex-row gap-8">
                 {/* Settings Sidebar */}
                 <div className="w-full md:w-64 flex-shrink-0">
@@ -222,7 +192,15 @@ const AlertsSettingsView: React.FC<AlertsSettingsViewProps> = ({ setCurrentView 
                                 disabled={isSaving}
                                 className={`bg-[#1a237e] hover:bg-blue-900 text-white font-medium py-2 px-6 rounded shadow-sm text-sm transition-colors flex items-center justify-center min-w-[140px] ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
                             >
-                                {isSaving ? 'Saving...' : 'Save Settings'}
+                                {isSaving ? (
+                                    <>
+                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Saving...
+                                    </>
+                                ) : 'Save Settings'}
                             </button>
                             <button 
                                 onClick={handleRestoreDefaults}

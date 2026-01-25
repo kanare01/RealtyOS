@@ -18,8 +18,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ setCurrentView }) => {
         { title: 'Documents (beta)', description: 'Manage legal document templates and generation.', view: 'Documents (beta)', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
         { title: 'Backup', description: 'Download full system backups.', view: 'Backup', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12' },
         { title: 'Audit Trail', description: 'View system activity logs and user actions.', view: 'Audit Trail', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-        { title: 'User Feedback', description: 'Review bug reports and feature requests from users.', view: 'User Feedback', icon: 'M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z' },
-        { title: 'System Status', description: 'Monitor system health and background jobs.', view: 'System Status', icon: 'M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z' },
     ];
 
     return (

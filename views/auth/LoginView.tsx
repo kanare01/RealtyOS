@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { API_BASE_URL } from '../../config';
 
 interface LoginViewProps {
     onLogin: () => void;
@@ -12,37 +11,26 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setIsLoading(true);
 
-        try {
-            const response = await fetch(`${API_BASE_URL}/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                // Save session
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                
-                // Call parent handler directly - App.tsx handles the rest
-                onLogin();
+        // Simulate backend authentication delay
+        setTimeout(() => {
+            if (email && password) {
+                if (password.length < 4) {
+                    setError('Password must be at least 4 characters');
+                    setIsLoading(false);
+                } else {
+                    setIsLoading(false);
+                    onLogin();
+                }
             } else {
-                setError(data.error || 'Login failed. Please check your credentials.');
+                setError('Please enter both email and password');
+                setIsLoading(false);
             }
-        } catch (err) {
-            setError('Network error. Ensure the backend is running at ' + API_BASE_URL);
-            console.error('Login error:', err);
-        } finally {
-            // Only stop loading if we failed. If success, the component unmounts anyway.
-            if (error) setIsLoading(false);
-        }
+        }, 1000);
     };
 
     return (
@@ -58,9 +46,9 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
                 <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
                     Sign in to RealtyOS
                 </h2>
-                <div className="mt-2 text-center">
-                    <span className="text-xs text-gray-400">Demo Creds: admin@realtyos.com / admin123</span>
-                </div>
+                <p className="mt-2 text-center text-sm text-gray-600">
+                    Or <a href="#" className="font-medium text-[#1a237e] hover:text-blue-900">contact support</a> for access
+                </p>
             </div>
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -99,6 +87,26 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#1a237e] focus:border-[#1a237e] sm:text-sm"
                                 />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                                <input
+                                    id="remember-me"
+                                    name="remember-me"
+                                    type="checkbox"
+                                    className="h-4 w-4 text-[#1a237e] focus:ring-[#1a237e] border-gray-300 rounded"
+                                />
+                                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                                    Remember me
+                                </label>
+                            </div>
+
+                            <div className="text-sm">
+                                <a href="#" className="font-medium text-[#1a237e] hover:text-blue-900">
+                                    Forgot your password?
+                                </a>
                             </div>
                         </div>
 

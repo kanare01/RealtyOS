@@ -10,7 +10,7 @@ interface NewMessageModalProps {
 }
 
 const NewMessageModal: React.FC<NewMessageModalProps> = ({ onClose, properties, tenants }) => {
-    const { addMessage, addMessages } = useData();
+    const { addMessage } = useData();
     
     const [targetType, setTargetType] = useState<'All Tenants' | 'Specific Tenant' | 'Team'>('Specific Tenant');
     const [selectedProperty, setSelectedProperty] = useState('');
@@ -29,7 +29,7 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({ onClose, properties, 
     // Filter tenants based on selected property
     const filteredTenants = tenants.filter(t => t.property === selectedProperty);
 
-    const handleSend = async () => {
+    const handleSend = () => {
         if (!messageContent.trim()) {
             alert("Message content cannot be empty.");
             return;
@@ -37,11 +37,12 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({ onClose, properties, 
 
         setIsSending(true);
 
-        try {
+        // Simulate sending delay
+        setTimeout(() => {
             if (targetType === 'All Tenants') {
                 // Send to all tenants in property
                 const msgs = filteredTenants.map(t => ({
-                    id: 0, // Backend will assign ID
+                    id: Date.now() + Math.random(),
                     date: new Date().toISOString().split('T')[0],
                     recipient: t.name,
                     recipientGroup: 'Tenant' as const,
@@ -51,13 +52,14 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({ onClose, properties, 
                     status: 'Sent' as const,
                     content: messageContent
                 }));
-                
-                await addMessages(msgs);
+                // In a real app we'd bulk add, but for now we loop or use addMessages if available
+                // Assuming addMessages exists or we iterate
+                msgs.forEach(m => addMessage(m));
             } else if (targetType === 'Specific Tenant') {
                 const tenant = tenants.find(t => t.id.toString() === selectedTenantId);
                 if (tenant) {
-                    await addMessage({
-                        id: 0,
+                    addMessage({
+                        id: Date.now(),
                         date: new Date().toISOString().split('T')[0],
                         recipient: tenant.name,
                         recipientGroup: 'Tenant',
@@ -69,9 +71,9 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({ onClose, properties, 
                     });
                 }
             } else {
-                // Team message
-                await addMessage({
-                    id: 0,
+                // Team mock
+                addMessage({
+                    id: Date.now(),
                     date: new Date().toISOString().split('T')[0],
                     recipient: "Team Member",
                     recipientGroup: 'Team',
@@ -81,12 +83,10 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({ onClose, properties, 
                     content: messageContent
                 });
             }
-            onClose();
-        } catch (e) {
-            console.error("Failed to send message", e);
-        } finally {
+
             setIsSending(false);
-        }
+            onClose();
+        }, 1000);
     };
 
     return (

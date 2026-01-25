@@ -1,8 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View } from '../../types';
-import { useData } from '../../contexts/DataContext';
-import { API_BASE_URL } from '../../config';
 
 interface CustomMessageTemplateSettingsViewProps {
     setCurrentView: (view: View) => void;
@@ -16,20 +14,34 @@ interface Template {
     content: string;
 }
 
-const defaultTemplates: Template[] = [
+const initialTemplates: Template[] = [
     {
         id: 1,
         name: 'Comprehensive Reminder',
         type: 'email',
-        description: 'Used to send comprehensive balance reminders.',
-        content: 'Dear [TENANT_NAME], Previous balance: [PREVIOUS_BALANCE], [CURRENT_MONTH] balance: [CURRENT_BALANCE]. Total due is KES [TOTAL_BALANCE]. [PAYMENT_INSTRUCTIONS].'
+        description: 'Used to send comprehensive balance reminders that includes previous and current month balances breakdown.',
+        content: 'Dear [TENANT_NAME], Previous balance: [PREVIOUS_BALANCE], [CURRENT_MONTH] balance: [CURRENT_BALANCE]. Total due is KES [TOTAL_BALANCE]. [PAYMENT_INSTRUCTIONS]. [SIGNATURE]'
     },
     {
         id: 2,
         name: 'Simple SMS Reminder',
         type: 'sms',
         description: 'A short reminder for SMS notifications.',
-        content: 'Hi [TENANT_NAME], your total due is KES [TOTAL_BALANCE]. Please pay by [DUE_DATE].'
+        content: 'Hi [TENANT_NAME], your total due is KES [TOTAL_BALANCE]. Please pay by [DUE_DATE]. [PAYMENT_INSTRUCTIONS].'
+    },
+    {
+        id: 3,
+        name: 'Invoice Notification',
+        type: 'email',
+        description: 'Sent when a new invoice is generated.',
+        content: 'Hello [TENANT_NAME], a new invoice #[INVOICE_NUMBER] for KES [INVOICE_AMOUNT] has been generated. Total due: KES [TOTAL_BALANCE].'
+    },
+    {
+        id: 4,
+        name: 'Payment Acknowledgement',
+        type: 'sms',
+        description: 'Sent after receiving payment.',
+        content: 'Received KES [AMOUNT_PAID] from [TENANT_NAME]. New Balance: KES [TOTAL_BALANCE]. Thank you.'
     }
 ];
 
@@ -67,6 +79,7 @@ const TemplateCard: React.FC<{
 
     return (
         <div className={`bg-white border rounded-lg mb-4 transition-all duration-200 ${isExpanded ? 'border-[#1a237e] shadow-md' : 'border-gray-200 hover:shadow-sm'}`}>
+            {/* Header */}
             <div 
                 className="flex flex-col md:flex-row md:items-center justify-between p-4 cursor-pointer select-none"
                 onClick={() => !isEditing && setIsExpanded(!isExpanded)}
@@ -105,6 +118,7 @@ const TemplateCard: React.FC<{
                 </div>
             </div>
 
+            {/* Expanded Content */}
             {isExpanded && (
                 <div className="border-t border-gray-100 p-6 bg-gray-50/50 rounded-b-lg animate-fadeIn">
                     {isEditing ? (
@@ -206,36 +220,8 @@ const TemplateCard: React.FC<{
 };
 
 const CustomMessageTemplateSettingsView: React.FC<CustomMessageTemplateSettingsViewProps> = ({ setCurrentView }) => {
-    const { addNotification } = useData();
-    const [templates, setTemplates] = useState<Template[]>(defaultTemplates);
-
-    useEffect(() => {
-        // Fetch custom templates from settings
-        const fetchTemplates = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch(`${API_BASE_URL}/settings`, {
-                    headers: { 'Authorization': token ? `Bearer ${token}` : '' }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.custom_message_templates) {
-                        try {
-                            const parsed = JSON.parse(data.custom_message_templates);
-                            if (Array.isArray(parsed) && parsed.length > 0) {
-                                setTemplates(parsed);
-                            }
-                        } catch (e) {
-                            console.error("Failed to parse templates", e);
-                        }
-                    }
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        };
-        fetchTemplates();
-    }, []);
+    const [templates, setTemplates] = useState<Template[]>(initialTemplates);
+    const [notification, setNotification] = useState<{message: string, type: 'success' | 'info'} | null>(null);
 
     const settingsMenu: { label: string; view: View }[] = [
         { label: 'General', view: 'General' },
@@ -250,31 +236,28 @@ const CustomMessageTemplateSettingsView: React.FC<CustomMessageTemplateSettingsV
         { label: 'Audit Trail', view: 'Audit Trail' },
     ];
 
-    const handleUpdateTemplate = async (updatedTemplate: Template) => {
-        const newTemplates = templates.map(t => t.id === updatedTemplate.id ? updatedTemplate : t);
-        setTemplates(newTemplates);
-        
-        // Persist to backend settings
-        try {
-            const token = localStorage.getItem('token');
-            await fetch(`${API_BASE_URL}/settings`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': token ? `Bearer ${token}` : '' 
-                },
-                body: JSON.stringify({
-                    custom_message_templates: JSON.stringify(newTemplates)
-                })
-            });
-            addNotification(`'${updatedTemplate.name}' updated successfully.`, 'success');
-        } catch (e) {
-            addNotification('Failed to save template.', 'error');
-        }
+    const showNotificationMsg = (message: string, type: 'success' | 'info' = 'success') => {
+        setNotification({ message, type });
+        setTimeout(() => setNotification(null), 3000);
+    };
+
+    const handleUpdateTemplate = (updatedTemplate: Template) => {
+        setTemplates(templates.map(t => t.id === updatedTemplate.id ? updatedTemplate : t));
+        showNotificationMsg(`'${updatedTemplate.name}' updated successfully.`);
     };
 
     return (
         <div className="animate-fadeIn max-w-6xl mx-auto pb-20 relative">
+            {/* Notification Toast */}
+            {notification && (
+                <div className="fixed top-24 right-4 md:right-10 z-50 animate-fadeIn">
+                    <div className="bg-green-100 border-green-400 text-green-700 border px-4 py-3 rounded relative shadow-lg" role="alert">
+                        <strong className="font-bold">Success!</strong>
+                        <span className="block sm:inline"> {notification.message}</span>
+                    </div>
+                </div>
+            )}
+
             <div className="flex flex-col md:flex-row gap-8">
                 {/* Settings Sidebar */}
                 <div className="w-full md:w-64 flex-shrink-0">
@@ -328,7 +311,7 @@ const CustomMessageTemplateSettingsView: React.FC<CustomMessageTemplateSettingsV
                                         <span 
                                             key={ph} 
                                             className="bg-white border border-blue-200 text-blue-800 text-[10px] font-mono px-2 py-1 rounded cursor-pointer hover:bg-blue-100 transition-colors"
-                                            title="Click to copy"
+                                            title="Click to copy (simulated)"
                                             onClick={() => navigator.clipboard.writeText(ph)}
                                         >
                                             {ph}

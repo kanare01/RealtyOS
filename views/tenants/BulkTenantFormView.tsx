@@ -8,7 +8,7 @@ interface BulkTenantFormViewProps {
 }
 
 const BulkTenantFormView: React.FC<BulkTenantFormViewProps> = ({ setCurrentView }) => {
-    const { lastCreatedUnits, addTenants, properties, units, addNotification } = useData();
+    const { lastCreatedUnits, addTenants, properties, units } = useData();
     const [file, setFile] = useState<File | null>(null);
     const [previewData, setPreviewData] = useState<Partial<Tenant>[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -17,13 +17,16 @@ const BulkTenantFormView: React.FC<BulkTenantFormViewProps> = ({ setCurrentView 
 
     // Step 1: Generate CSV Template
     const handleDownloadTemplate = () => {
+        // Removed Property Name from header, made Email explicitly optional in header text
         let csvContent = "Unit ID,Rent Amount,First Name,Last Name,Phone Number,Email (Optional)\n";
         
         if (lastCreatedUnits.length > 0) {
             lastCreatedUnits.forEach(unit => {
+                // Removed unit.propertyName from the row data
                 csvContent += `${unit.name},${unit.rentAmount},,,,\n`;
             });
         } else {
+            // Fallback
             csvContent += `A101,15000,,,,\n`;
             csvContent += `A102,15000,,,,\n`;
         }
@@ -60,12 +63,17 @@ const BulkTenantFormView: React.FC<BulkTenantFormViewProps> = ({ setCurrentView 
                     const cols = line.split(',');
                     if (cols.length >= 1) { 
                         const unitName = cols[0]?.trim();
+                        
+                        // Attempt to find the property based on the Unit Name from existing system data
+                        // Prioritize checking lastCreatedUnits first, then all units
                         const matchedUnit = lastCreatedUnits.find(u => u.name === unitName) || units.find(u => u.name === unitName);
                         const resolvedProperty = matchedUnit ? matchedUnit.propertyName : (properties.length > 0 ? properties[0].name : 'Unknown Property');
 
+                        // Adjusted indices since Property Name (col 0) was removed
                         parsedData.push({
                             property: resolvedProperty,
                             unit: unitName,
+                            // cols[1] is Rent Amount (ignored for tenant object usually)
                             firstName: cols[2]?.trim(),
                             lastName: cols[3]?.trim(),
                             phone: cols[4]?.trim(),
@@ -80,43 +88,47 @@ const BulkTenantFormView: React.FC<BulkTenantFormViewProps> = ({ setCurrentView 
     };
 
     // Step 3: Submit Data
-    const handleImport = async () => {
+    const handleImport = () => {
         setIsProcessing(true);
-        const tenantsToAdd: Tenant[] = [];
+        
+        // Simulate processing delay
+        setTimeout(() => {
+            const tenantsToAdd: Tenant[] = [];
 
-        previewData.forEach((data, index) => {
-            const prop = properties.find(p => p.name === data.property);
-            if (data.unit && data.firstName && data.lastName && data.phone) {
-                tenantsToAdd.push({
-                    id: Date.now() + index, // Temp ID, backend generates real one
-                    name: `${data.firstName} ${data.lastName}`,
-                    firstName: data.firstName,
-                    lastName: data.lastName,
-                    email: data.email || 'N/A',
-                    phone: data.phone,
-                    property: data.property || prop?.name || 'Unknown',
-                    propertyId: prop?.id || 0,
-                    unit: data.unit,
-                    unitId: 0, 
-                    status: 'Active',
-                    leaseEndDate: 'N/A',
-                    avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-                    balance: 0
-                });
+            previewData.forEach((data, index) => {
+                // Find property ID if possible
+                const prop = properties.find(p => p.name === data.property);
+                
+                if (data.unit && data.firstName && data.lastName && data.phone) {
+                    tenantsToAdd.push({
+                        id: Date.now() + index,
+                        name: `${data.firstName} ${data.lastName}`,
+                        firstName: data.firstName,
+                        lastName: data.lastName,
+                        email: data.email || 'N/A',
+                        phone: data.phone,
+                        property: data.property || prop?.name || 'Unknown',
+                        propertyId: prop?.id || 0,
+                        unit: data.unit,
+                        unitId: 0, // In a real app we'd lookup unit ID
+                        status: 'Active',
+                        leaseEndDate: 'N/A',
+                        avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
+                        balance: 0
+                    });
+                }
+            });
+
+            if (tenantsToAdd.length > 0) {
+                addTenants(tenantsToAdd);
             }
-        });
-
-        if (tenantsToAdd.length > 0) {
-            await addTenants(tenantsToAdd);
+            
+            setIsProcessing(false);
             setUploadSuccess(true);
             setTimeout(() => {
                 setCurrentView('Tenants');
             }, 2000);
-        } else {
-            addNotification('No valid tenant data found to import.', 'error');
-        }
-        
-        setIsProcessing(false);
+        }, 1500);
     };
 
     return (
@@ -221,6 +233,7 @@ const BulkTenantFormView: React.FC<BulkTenantFormViewProps> = ({ setCurrentView 
                                             <tr key={idx} className="bg-white border-b hover:bg-gray-50">
                                                 <td className="p-3 font-medium text-[#1a237e]">{row.unit}</td>
                                                 <td className="p-3 text-sm text-gray-500">
+                                                    {/* Lookup category from units */}
                                                     {units.find(u => u.name === row.unit)?.category || '-'}
                                                 </td>
                                                 <td className="p-3">{row.firstName || <span className="text-red-400 italic">Missing</span>}</td>

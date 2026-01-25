@@ -1,22 +1,18 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { View } from '../../types';
-import { useData } from '../../contexts/DataContext';
-import { API_BASE_URL } from '../../config';
 
 interface AccountInfoSettingsViewProps {
     setCurrentView: (view: View) => void;
 }
 
 const AccountInfoSettingsView: React.FC<AccountInfoSettingsViewProps> = ({ setCurrentView }) => {
-    const { addNotification, uploadFile } = useData();
-    
     // Profile State
     const [profile, setProfile] = useState({
-        username: '',
-        name: '',
-        email: '',
-        phone: ''
+        username: 'k254',
+        firstName: '',
+        lastName: '',
+        email: 'kwash904@gmail.com'
     });
     const [isEditing, setIsEditing] = useState(false);
     const [tempProfile, setTempProfile] = useState(profile);
@@ -32,37 +28,8 @@ const AccountInfoSettingsView: React.FC<AccountInfoSettingsViewProps> = ({ setCu
     const fileInputRef = useRef<HTMLInputElement>(null);
     
     // UI State
+    const [notification, setNotification] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-
-    useEffect(() => {
-        fetchProfile();
-    }, []);
-
-    const fetchProfile = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/auth/me`, {
-                headers: { 'Authorization': token ? `Bearer ${token}` : '' }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setProfile({
-                    username: data.username || '',
-                    name: data.name || '',
-                    email: data.email || '',
-                    phone: data.phone || ''
-                });
-                setTempProfile({
-                    username: data.username || '',
-                    name: data.name || '',
-                    email: data.email || '',
-                    phone: data.phone || ''
-                });
-            }
-        } catch (error) {
-            console.error(error);
-        }
-    };
 
     const settingsMenu: { label: string; view: View }[] = [
         { label: 'General', view: 'General' },
@@ -77,88 +44,51 @@ const AccountInfoSettingsView: React.FC<AccountInfoSettingsViewProps> = ({ setCu
         { label: 'Audit Trail', view: 'Audit Trail' },
     ];
 
-    // Handler: Save Profile
-    const handleSaveProfile = async () => {
-        setIsLoading(true);
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/auth/me`, {
-                method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': token ? `Bearer ${token}` : '' 
-                },
-                body: JSON.stringify({
-                    name: tempProfile.name,
-                    email: tempProfile.email,
-                    phone: tempProfile.phone,
-                    username: tempProfile.username
-                })
-            });
+    // Helper: Show Notification
+    const showNotificationMsg = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+        setNotification({ message, type });
+        setTimeout(() => setNotification(null), 3000);
+    };
 
-            if (res.ok) {
-                setProfile(tempProfile);
-                setIsEditing(false);
-                addNotification('Profile updated successfully.', 'success');
-            } else {
-                addNotification('Failed to update profile.', 'error');
-            }
-        } catch (error) {
-            addNotification('Network error.', 'error');
-        } finally {
+    // Handler: Save Profile
+    const handleSaveProfile = () => {
+        setIsLoading(true);
+        setTimeout(() => {
+            setProfile(tempProfile);
+            setIsEditing(false);
             setIsLoading(false);
-        }
+            showNotificationMsg('Profile updated successfully.');
+        }, 800);
     };
 
     // Handler: Change Password
-    const handleChangePassword = async () => {
+    const handleChangePassword = () => {
         if (!passwordForm.current || !passwordForm.new || !passwordForm.confirm) {
-            addNotification('Please fill in all password fields.', 'error');
+            showNotificationMsg('Please fill in all password fields.', 'error');
             return;
         }
         if (passwordForm.new !== passwordForm.confirm) {
-            addNotification('New passwords do not match.', 'error');
+            showNotificationMsg('New passwords do not match.', 'error');
             return;
         }
         
         setIsLoading(true);
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/auth/change-password`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': token ? `Bearer ${token}` : '' 
-                },
-                body: JSON.stringify({
-                    current: passwordForm.current,
-                    new: passwordForm.new
-                })
-            });
-
-            if (res.ok) {
-                setShowPasswordModal(false);
-                setPasswordForm({ current: '', new: '', confirm: '' });
-                addNotification('Password changed successfully.', 'success');
-            } else {
-                const err = await res.json();
-                addNotification(err.error || 'Failed to change password.', 'error');
-            }
-        } catch (error) {
-            addNotification('Network error.', 'error');
-        } finally {
+        setTimeout(() => {
             setIsLoading(false);
-        }
+            setShowPasswordModal(false);
+            setPasswordForm({ current: '', new: '', confirm: '' });
+            showNotificationMsg('Password changed successfully.');
+        }, 1000);
     };
 
-    // Handler: Generate Agent Code (Simulated for now, could be real if backend supported)
+    // Handler: Generate Agent Code
     const handleGenerateCode = () => {
         setIsLoading(true);
         setTimeout(() => {
             const code = Math.random().toString(36).substring(2, 8).toUpperCase();
             setAgentCode(code);
             setIsLoading(false);
-            addNotification('New Agent Code generated.', 'success');
+            showNotificationMsg('New Agent Code generated.');
         }, 500);
     };
 
@@ -166,7 +96,7 @@ const AccountInfoSettingsView: React.FC<AccountInfoSettingsViewProps> = ({ setCu
     const handleCopyCode = () => {
         if (agentCode) {
             navigator.clipboard.writeText(agentCode);
-            addNotification('Agent code copied to clipboard.', 'info');
+            showNotificationMsg('Agent code copied to clipboard.', 'info');
         }
     };
 
@@ -175,18 +105,28 @@ const AccountInfoSettingsView: React.FC<AccountInfoSettingsViewProps> = ({ setCu
         fileInputRef.current?.click();
     };
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            const result = await uploadFile(e.target.files[0], 'general');
-            if (result.success) {
-                addNotification(`Signature uploaded successfully`, 'success');
-            }
+            const fileName = e.target.files[0].name;
+            showNotificationMsg(`Signature uploaded: ${fileName}`);
         }
     };
 
     return (
         <div className="animate-fadeIn max-w-6xl mx-auto pb-20 relative">
-            
+            {/* Notification Toast */}
+            {notification && (
+                <div className="fixed top-24 right-4 md:right-10 z-50 animate-fadeIn">
+                    <div className={`${
+                        notification.type === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 
+                        notification.type === 'error' ? 'bg-red-100 border-red-400 text-red-700' :
+                        'bg-blue-100 border-blue-400 text-blue-700'
+                    } border px-4 py-3 rounded relative shadow-lg`} role="alert">
+                        <span className="block sm:inline">{notification.message}</span>
+                    </div>
+                </div>
+            )}
+
             {/* Password Modal */}
             {showPasswordModal && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -299,56 +239,38 @@ const AccountInfoSettingsView: React.FC<AccountInfoSettingsViewProps> = ({ setCu
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
                                 <div>
                                     <label className="block text-gray-500 mb-1">Username</label>
-                                    {isEditing ? (
-                                        <input 
-                                            type="text" 
-                                            value={tempProfile.username}
-                                            onChange={e => setTempProfile({...tempProfile, username: e.target.value})}
-                                            className="w-full border-gray-300 rounded-md shadow-sm focus:ring-[#1a237e] focus:border-[#1a237e] text-sm p-2 bg-white border"
-                                        />
-                                    ) : (
-                                        <div className="font-medium text-gray-800 p-2 bg-gray-50 rounded border border-transparent">{profile.username}</div>
-                                    )}
+                                    <div className="font-medium text-gray-800 p-2 bg-gray-50 rounded border border-transparent">{profile.username}</div>
                                 </div>
                                 <div>
                                     <label className="block text-gray-500 mb-1">Email</label>
+                                    <div className="font-medium text-gray-800 p-2 bg-gray-50 rounded border border-transparent">{profile.email}</div>
+                                </div>
+                                <div>
+                                    <label className="block text-gray-500 mb-1">First Name</label>
                                     {isEditing ? (
                                         <input 
                                             type="text" 
-                                            value={tempProfile.email}
-                                            onChange={e => setTempProfile({...tempProfile, email: e.target.value})}
+                                            value={tempProfile.firstName}
+                                            onChange={e => setTempProfile({...tempProfile, firstName: e.target.value})}
                                             className="w-full border-gray-300 rounded-md shadow-sm focus:ring-[#1a237e] focus:border-[#1a237e] text-sm p-2 bg-white border"
+                                            placeholder="Enter first name"
                                         />
                                     ) : (
-                                        <div className="font-medium text-gray-800 p-2 bg-gray-50 rounded border border-transparent">{profile.email}</div>
+                                        <div className="font-medium text-gray-800 p-2">{profile.firstName || '-'}</div>
                                     )}
                                 </div>
                                 <div>
-                                    <label className="block text-gray-500 mb-1">Full Name</label>
+                                    <label className="block text-gray-500 mb-1">Last Name</label>
                                     {isEditing ? (
                                         <input 
                                             type="text" 
-                                            value={tempProfile.name}
-                                            onChange={e => setTempProfile({...tempProfile, name: e.target.value})}
+                                            value={tempProfile.lastName}
+                                            onChange={e => setTempProfile({...tempProfile, lastName: e.target.value})}
                                             className="w-full border-gray-300 rounded-md shadow-sm focus:ring-[#1a237e] focus:border-[#1a237e] text-sm p-2 bg-white border"
-                                            placeholder="Enter full name"
+                                            placeholder="Enter last name"
                                         />
                                     ) : (
-                                        <div className="font-medium text-gray-800 p-2">{profile.name || '-'}</div>
-                                    )}
-                                </div>
-                                <div>
-                                    <label className="block text-gray-500 mb-1">Phone</label>
-                                    {isEditing ? (
-                                        <input 
-                                            type="text" 
-                                            value={tempProfile.phone}
-                                            onChange={e => setTempProfile({...tempProfile, phone: e.target.value})}
-                                            className="w-full border-gray-300 rounded-md shadow-sm focus:ring-[#1a237e] focus:border-[#1a237e] text-sm p-2 bg-white border"
-                                            placeholder="Enter phone number"
-                                        />
-                                    ) : (
-                                        <div className="font-medium text-gray-800 p-2">{profile.phone || '-'}</div>
+                                        <div className="font-medium text-gray-800 p-2">{profile.lastName || '-'}</div>
                                     )}
                                 </div>
                             </div>
@@ -430,7 +352,15 @@ const AccountInfoSettingsView: React.FC<AccountInfoSettingsViewProps> = ({ setCu
                                 disabled={isLoading}
                                 className={`bg-[#000080] hover:bg-blue-900 text-white font-medium py-2 px-4 rounded shadow-sm text-sm transition-colors flex items-center ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                             >
-                                {isLoading ? 'Generating...' : (
+                                {isLoading ? (
+                                    <>
+                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Generating...
+                                    </>
+                                ) : (
                                     <>
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

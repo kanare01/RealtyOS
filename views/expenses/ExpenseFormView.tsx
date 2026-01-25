@@ -8,7 +8,7 @@ interface ExpenseFormViewProps {
 }
 
 const ExpenseFormView: React.FC<ExpenseFormViewProps> = ({ setCurrentView }) => {
-    const { properties, addExpense, addNotification } = useData();
+    const { properties, addExpense } = useData();
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [selectedProperty, setSelectedProperty] = useState('');
     const [unit, setUnit] = useState('');
@@ -19,7 +19,7 @@ const ExpenseFormView: React.FC<ExpenseFormViewProps> = ({ setCurrentView }) => 
 
     const handleSubmit = () => {
         if (!selectedProperty || !amount || !date) {
-            addNotification("Please fill in the required fields (Property, Amount, Date).", 'error');
+            alert("Please fill in the required fields (Property, Amount, Date).");
             return;
         }
 
@@ -34,7 +34,7 @@ const ExpenseFormView: React.FC<ExpenseFormViewProps> = ({ setCurrentView }) => 
             description: description
         });
 
-        addNotification("Expense recorded successfully!", 'success');
+        alert("Expense recorded successfully!");
         setCurrentView('Expenses');
     };
 

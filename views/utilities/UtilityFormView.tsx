@@ -8,7 +8,7 @@ interface UtilityFormViewProps {
 }
 
 const UtilityFormView: React.FC<UtilityFormViewProps> = ({ setCurrentView }) => {
-    const { properties, getUnitsByProperty, addUtility, addNotification } = useData();
+    const { properties, getUnitsByProperty, addUtility } = useData();
     
     const [property, setProperty] = useState('');
     const [unit, setUnit] = useState('');
@@ -58,17 +58,17 @@ const UtilityFormView: React.FC<UtilityFormViewProps> = ({ setCurrentView }) => 
 
     const handleSubmit = () => {
         if (!property || !unit || !date) {
-            addNotification("Please fill in Property, Unit, and Date.", 'error');
+            alert("Please fill in Property, Unit, and Date.");
             return;
         }
 
         if (!isFixedCost && (!prevReading || !currReading || !rate)) {
-             addNotification("Please fill in readings and rate.", 'error');
+             alert("Please fill in readings and rate.");
              return;
         }
 
         if (isFixedCost && !fixedAmount) {
-            addNotification("Please enter amount.", 'error');
+            alert("Please enter amount.");
             return;
         }
 
@@ -86,7 +86,7 @@ const UtilityFormView: React.FC<UtilityFormViewProps> = ({ setCurrentView }) => 
             status: 'Uninvoiced'
         });
 
-        addNotification("Utility recorded successfully!", 'success');
+        alert("Utility recorded successfully!");
         setCurrentView('Utilities');
     };
 

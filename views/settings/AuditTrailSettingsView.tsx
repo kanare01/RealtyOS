@@ -1,11 +1,36 @@
 
 import React, { useState, useMemo } from 'react';
 import { View } from '../../types';
-import { useData } from '../../contexts/DataContext';
 
 interface AuditTrailSettingsViewProps {
     setCurrentView: (view: View) => void;
 }
+
+interface AuditLog {
+    id: number;
+    username: string;
+    fullName: string;
+    action: string;
+    date: string; // ISO string for sorting/filtering
+    description: string;
+    details?: string; // For expanded view
+    ipAddress?: string;
+}
+
+const mockAuditLogs: AuditLog[] = [
+    { id: 1, username: 'k254', fullName: 'Kelvin Wash', action: 'created tenant', date: '2025-12-12T16:44:56', description: 'Created tenant mr Kabati in kanari Apartments (f1)', details: 'Tenant ID: 105 created.', ipAddress: '192.168.1.45' },
+    { id: 2, username: 'k254', fullName: 'Kelvin Wash', action: 'created unit', date: '2025-12-12T16:44:08', description: 'Created unit f1 in kanari Apartments', details: 'Unit ID: 302, Rent: 15000', ipAddress: '192.168.1.45' },
+    { id: 3, username: 'k254', fullName: 'Kelvin Wash', action: 'created property', date: '2025-12-12T16:27:51', description: 'Created property kanari Apartments', details: 'Property ID: 12', ipAddress: '192.168.1.45' },
+    { id: 4, username: 'k254', fullName: 'Kelvin Wash', action: 'deleted property', date: '2025-12-12T16:27:07', description: 'Deleted property kanari Apartments', details: 'Property ID: 11 (Archived)', ipAddress: '192.168.1.45' },
+    { id: 5, username: 'k254', fullName: 'Kelvin Wash', action: 'created property', date: '2025-12-12T16:26:52', description: 'Created property kanari Apartments', ipAddress: '192.168.1.45' },
+    { id: 6, username: 'k254', fullName: 'Kelvin Wash', action: 'deleted property', date: '2025-12-12T16:03:46', description: 'Deleted property kanari Apartments', ipAddress: '192.168.1.45' },
+    { id: 7, username: 'manager', fullName: 'Jane Doe', action: 'updated settings', date: '2025-12-12T16:03:41', description: 'Changed company address', details: 'Old: Box 1, New: Box 23', ipAddress: '10.0.0.12' },
+    { id: 8, username: 'k254', fullName: 'Kelvin Wash', action: 'deleted property', date: '2025-12-12T15:42:54', description: 'Deleted property kanari Apartments', ipAddress: '192.168.1.45' },
+    { id: 9, username: 'k254', fullName: 'Kelvin Wash', action: 'Archived tenant', date: '2025-12-12T15:42:29', description: 'Archived tenant mr kanare in kanari Apartments (f1)', ipAddress: '192.168.1.45' },
+    { id: 10, username: 'k254', fullName: 'Kelvin Wash', action: 'created tenant', date: '2025-12-12T15:27:59', description: 'Created tenant mr kanare in kanari Apartments (f1)', ipAddress: '192.168.1.45' },
+    { id: 11, username: 'admin', fullName: 'System Admin', action: 'system backup', date: '2025-12-11T09:00:00', description: 'Automated daily backup completed', details: 'Size: 25MB', ipAddress: '127.0.0.1' },
+    { id: 12, username: 'manager', fullName: 'Jane Doe', action: 'login', date: '2025-12-11T08:30:00', description: 'User logged in successfully', ipAddress: '10.0.0.12' },
+];
 
 const CollapsibleCard: React.FC<{ title: string; children: React.ReactNode; defaultOpen?: boolean; className?: string }> = ({ title, children, defaultOpen = true, className = '' }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -28,8 +53,6 @@ const CollapsibleCard: React.FC<{ title: string; children: React.ReactNode; defa
 };
 
 const AuditTrailSettingsView: React.FC<AuditTrailSettingsViewProps> = ({ setCurrentView }) => {
-    const { auditLogs } = useData();
-    
     // Filter State
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
@@ -55,13 +78,13 @@ const AuditTrailSettingsView: React.FC<AuditTrailSettingsViewProps> = ({ setCurr
 
     // Get unique users for dropdown
     const users = useMemo(() => {
-        const unique = new Set(auditLogs.map(log => log.username));
+        const unique = new Set(mockAuditLogs.map(log => log.username));
         return Array.from(unique);
-    }, [auditLogs]);
+    }, []);
 
     // Filter Logic
     const filteredLogs = useMemo(() => {
-        return auditLogs.filter(log => {
+        return mockAuditLogs.filter(log => {
             // User Filter
             if (selectedUser !== 'All Users' && log.username !== selectedUser) {
                 return false;
@@ -81,7 +104,7 @@ const AuditTrailSettingsView: React.FC<AuditTrailSettingsViewProps> = ({ setCurr
             }
             return true;
         });
-    }, [auditLogs, selectedUser, startDate, endDate]);
+    }, [selectedUser, startDate, endDate]);
 
     // Pagination Logic
     const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
@@ -95,18 +118,14 @@ const AuditTrailSettingsView: React.FC<AuditTrailSettingsViewProps> = ({ setCurr
     };
 
     const formatDate = (dateString: string) => {
-        try {
-            return new Date(dateString).toLocaleString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-        } catch {
-            return dateString;
-        }
+        return new Date(dateString).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
     };
 
     const handleResetFilters = () => {
@@ -214,7 +233,7 @@ const AuditTrailSettingsView: React.FC<AuditTrailSettingsViewProps> = ({ setCurr
                                                     {expandedRowId === log.id ? '−' : '+'}
                                                 </td>
                                                 <td className="py-4 pr-4 font-medium text-gray-700">{log.username}</td>
-                                                <td className="py-4 pr-4 text-gray-500">{log.fullName || log.username}</td>
+                                                <td className="py-4 pr-4 text-gray-500">{log.fullName}</td>
                                                 <td className="py-4 pr-4 text-gray-700">
                                                     <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs border border-gray-200">
                                                         {log.action}
@@ -229,7 +248,7 @@ const AuditTrailSettingsView: React.FC<AuditTrailSettingsViewProps> = ({ setCurr
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                             <div>
                                                                 <strong className="text-gray-800">Additional Details:</strong>
-                                                                <p className="mt-1">{log.description}</p>
+                                                                <p className="mt-1">{log.details || 'No additional details available.'}</p>
                                                             </div>
                                                             <div>
                                                                 <strong className="text-gray-800">Technical Info:</strong>
@@ -267,7 +286,7 @@ const AuditTrailSettingsView: React.FC<AuditTrailSettingsViewProps> = ({ setCurr
                                     ‹
                                 </button>
                                 
-                                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(page => (
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                                     <button
                                         key={page}
                                         onClick={() => setCurrentPage(page)}

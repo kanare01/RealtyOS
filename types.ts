@@ -27,8 +27,6 @@ export type View =
   | 'Billing'
   | 'MPESA Transactions'
   | 'Audit Trail'
-  | 'User Feedback'
-  | 'System Status'
   | 'Foundation'
   | 'Getting Started'
   | 'PropertyForm'
@@ -226,44 +224,4 @@ export interface Message {
   type: 'SMS' | 'Email';
   status: 'Delivered' | 'Failed' | 'Pending' | 'Sent';
   content: string;
-}
-
-export interface TeamMember {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  username: string;
-  role: string;
-  password?: string; // Optional for form
-}
-
-export interface AuditLog {
-  id: number;
-  username: string;
-  fullName: string;
-  action: string;
-  date: string;
-  description: string;
-  ipAddress?: string;
-}
-
-export interface MpesaTransaction {
-  id: number;
-  reference: string;
-  status: string;
-  description: string;
-  shortcode: string;
-  date: string;
-  amount: number;
-  tenant: string;
-}
-
-export interface Feedback {
-    id: number;
-    type: string;
-    message: string;
-    status: string;
-    username: string;
-    createdAt: string;
 }

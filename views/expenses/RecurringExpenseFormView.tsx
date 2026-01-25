@@ -8,7 +8,7 @@ interface RecurringExpenseFormViewProps {
 }
 
 const RecurringExpenseFormView: React.FC<RecurringExpenseFormViewProps> = ({ setCurrentView }) => {
-    const { properties, addRecurringExpense, addNotification } = useData();
+    const { properties, addRecurringExpense } = useData();
     const [description, setDescription] = useState('');
     const [selectedProperty, setSelectedProperty] = useState('');
     const [unit, setUnit] = useState('');
@@ -19,7 +19,7 @@ const RecurringExpenseFormView: React.FC<RecurringExpenseFormViewProps> = ({ set
 
     const handleSubmit = () => {
         if (!selectedProperty || !amount || !description) {
-            addNotification("Please fill in the required fields (Property, Amount, Description).", 'error');
+            alert("Please fill in the required fields (Property, Amount, Description).");
             return;
         }
 
@@ -43,7 +43,7 @@ const RecurringExpenseFormView: React.FC<RecurringExpenseFormViewProps> = ({ set
             status: 'Active'
         });
 
-        addNotification("Recurring expense setup successfully!", 'success');
+        alert("Recurring expense setup successfully!");
         setCurrentView('Expenses');
     };
 

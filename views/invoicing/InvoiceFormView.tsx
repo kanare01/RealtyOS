@@ -8,7 +8,7 @@ interface InvoiceFormViewProps {
 }
 
 const InvoiceFormView: React.FC<InvoiceFormViewProps> = ({ setCurrentView }) => {
-    const { tenants, addInvoice, addNotification } = useData();
+    const { tenants, addInvoice } = useData();
     const [selectedTenantId, setSelectedTenantId] = useState('');
     const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
     const [dueDate, setDueDate] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
@@ -42,13 +42,13 @@ const InvoiceFormView: React.FC<InvoiceFormViewProps> = ({ setCurrentView }) => 
 
     const handleSubmit = () => {
         if (!selectedTenant) {
-            addNotification('Please select a tenant', 'error');
+            alert('Please select a tenant');
             return;
         }
 
         const totalAmount = calculateTotal();
         if (totalAmount <= 0) {
-            addNotification('Total amount must be greater than 0', 'error');
+            alert('Total amount must be greater than 0');
             return;
         }
 
@@ -65,7 +65,7 @@ const InvoiceFormView: React.FC<InvoiceFormViewProps> = ({ setCurrentView }) => 
             status: 'Unpaid'
         });
 
-        addNotification('Invoice created successfully!', 'success');
+        alert('Invoice created successfully!');
         setCurrentView('Invoices');
     };
 

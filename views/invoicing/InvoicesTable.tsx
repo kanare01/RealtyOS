@@ -2,20 +2,13 @@
 import React, { useState } from 'react';
 import { Invoice } from '../../types';
 import Badge from '../../components/shared/Badge';
-import { useData } from '../../contexts/DataContext';
 
 interface InvoicesTableProps {
     invoices: Invoice[];
 }
 
 const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices }) => {
-    const { deleteInvoice, currentUser } = useData();
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
-    const [activeDropdownId, setActiveDropdownId] = useState<number | null>(null);
-
-    const toggleDropdown = (id: number) => {
-        setActiveDropdownId(activeDropdownId === id ? null : id);
-    };
 
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.checked) {
@@ -47,22 +40,6 @@ const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices }) => {
             alert("Download all visible invoices report...");
         } else {
             alert(`Downloading ${selectedIds.length} selected invoice(s)...`);
-        }
-    };
-
-    const handleVoid = (invoice: Invoice) => {
-        if (confirm("Are you sure you want to void this invoice? This will remove it from the list.")) {
-            // Since our backend/types don't strictly support 'Void' state in the enum yet, 
-            // we will delete it to clean up the ledger.
-            deleteInvoice(invoice.id);
-            setActiveDropdownId(null);
-        }
-    };
-
-    const handleDelete = (id: number) => {
-        if (confirm("Are you sure you want to delete this invoice?")) {
-            deleteInvoice(id);
-            setActiveDropdownId(null);
         }
     };
 
@@ -108,7 +85,7 @@ const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices }) => {
                     </div>
                 </div>
 
-                <div className="overflow-x-auto border-t border-b min-h-[300px]">
+                <div className="overflow-x-auto border-t border-b">
                      <table className="min-w-full text-sm">
                         <thead className="bg-gray-50 text-gray-500 font-medium">
                             <tr>
@@ -139,7 +116,7 @@ const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices }) => {
                                 </tr>
                             ) : (
                                 invoices.map(invoice => (
-                                    <tr key={invoice.id} className="hover:bg-gray-50 relative">
+                                    <tr key={invoice.id} className="hover:bg-gray-50">
                                         <td className="p-3">
                                             <input 
                                                 type="checkbox" 
@@ -165,42 +142,12 @@ const InvoicesTable: React.FC<InvoicesTableProps> = ({ invoices }) => {
                                         <td className="p-3 text-right font-medium text-gray-800">
                                             {invoice.totalAmount.toLocaleString()}
                                         </td>
-                                        <td className="p-3 text-center relative">
-                                            <button 
-                                                onClick={() => toggleDropdown(invoice.id)}
-                                                className="text-gray-400 hover:text-blue-600 p-1"
-                                            >
+                                        <td className="p-3 text-center">
+                                            <button className="text-gray-400 hover:text-blue-600">
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                                     <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                                                 </svg>
                                             </button>
-                                            
-                                            {activeDropdownId === invoice.id && (
-                                                <>
-                                                    <div className="fixed inset-0 z-10" onClick={() => setActiveDropdownId(null)}></div>
-                                                    <div className="absolute right-0 top-8 w-32 bg-white border border-gray-200 rounded shadow-xl z-20 overflow-hidden">
-                                                        {currentUser?.role === 'Admin' && (
-                                                            <>
-                                                                <button 
-                                                                    onClick={() => handleVoid(invoice)}
-                                                                    className="block w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-100"
-                                                                >
-                                                                    Void / Cancel
-                                                                </button>
-                                                                <button 
-                                                                    onClick={() => handleDelete(invoice.id)}
-                                                                    className="block w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50"
-                                                                >
-                                                                    Delete
-                                                                </button>
-                                                            </>
-                                                        )}
-                                                        {currentUser?.role !== 'Admin' && (
-                                                            <div className="px-4 py-2 text-xs text-gray-400 italic">No actions available</div>
-                                                        )}
-                                                    </div>
-                                                </>
-                                            )}
                                         </td>
                                     </tr>
                                 ))

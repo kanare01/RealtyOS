@@ -2,21 +2,12 @@
 import React from 'react';
 import { Expense } from '../../types';
 import Badge from '../../components/shared/Badge';
-import { useData } from '../../contexts/DataContext';
 
 interface ExpensesTableProps {
     expenses: Expense[];
 }
 
 const ExpensesTable: React.FC<ExpensesTableProps> = ({ expenses }) => {
-    const { deleteExpense, currentUser } = useData();
-
-    const handleDelete = (id: number) => {
-        if (confirm("Are you sure you want to delete this expense record?")) {
-            deleteExpense(id);
-        }
-    };
-
     return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
             <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-lg">
@@ -62,14 +53,8 @@ const ExpensesTable: React.FC<ExpensesTableProps> = ({ expenses }) => {
                                    {expense.amount.toLocaleString()}
                                </td>
                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                   {currentUser?.role === 'Admin' && (
-                                       <button 
-                                            onClick={() => handleDelete(expense.id)} 
-                                            className="text-red-600 hover:text-red-900"
-                                        >
-                                            Delete
-                                        </button>
-                                   )}
+                                   <button onClick={() => alert("Edit not implemented")} className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                                   <button onClick={() => alert("Delete not implemented")} className="text-red-600 hover:text-red-900">Delete</button>
                                </td>
                            </tr>
                        ))}

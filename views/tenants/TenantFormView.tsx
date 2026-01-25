@@ -28,7 +28,7 @@ const FormRow = ({ label, subLabel, children, helpIcon = false, alignStart = fal
 );
 
 const TenantFormView: React.FC<TenantFormViewProps> = ({ setCurrentView }) => {
-    const { properties, getUnitsByProperty, addTenant, updateTenant, addNotification, uploadFile, units } = useData();
+    const { properties, getUnitsByProperty, addTenant } = useData();
     
     // Core Fields
     const [property, setProperty] = useState('');
@@ -41,10 +41,8 @@ const TenantFormView: React.FC<TenantFormViewProps> = ({ setCurrentView }) => {
     // UI State
     const [showBanner, setShowBanner] = useState(true);
     const [showMore, setShowMore] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
-    const [editId, setEditId] = useState<number | null>(null);
-    const [isProcessing, setIsProcessing] = useState(false);
 
     // Advanced / Optional Fields
     const [depositType, setDepositType] = useState('');
@@ -66,27 +64,22 @@ const TenantFormView: React.FC<TenantFormViewProps> = ({ setCurrentView }) => {
     const [nextOfKin, setNextOfKin] = useState([{ name: '', phone: '', relationship: '', otherInfo: '' }]);
     const [bankPayers, setBankPayers] = useState(['']);
 
-    // File Upload State
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
     // Initial property selection
     useEffect(() => {
-        if (properties.length > 0 && !property && !isEditing) {
+        if (properties.length > 0 && !property) {
             setProperty(properties[0].name);
         }
-    }, [properties, property, isEditing]);
+    }, [properties, property]);
 
     // Fetch units for selected property
     const availableUnits = useMemo(() => {
-        return getUnitsByProperty(property).filter(u => u.status === 'Vacant' || (isEditing && u.name === unit));
-    }, [property, getUnitsByProperty, isEditing, unit]);
+        return getUnitsByProperty(property).filter(u => u.status === 'Vacant');
+    }, [property, getUnitsByProperty]);
 
-    // Reset unit when property changes, unless editing
+    // Reset unit when property changes
     useEffect(() => {
-        if (!isEditing) {
-            setUnit('');
-        }
-    }, [property, isEditing]);
+        setUnit('');
+    }, [property]);
 
     const handleClear = () => {
         setFirstName('');
@@ -108,35 +101,22 @@ const TenantFormView: React.FC<TenantFormViewProps> = ({ setCurrentView }) => {
         setOtherPhones([{ name: '', phone: '' }]);
         setNextOfKin([{ name: '', phone: '', relationship: '', otherInfo: '' }]);
         setBankPayers(['']);
-        setSelectedFile(null);
         // Keep property selected
         setIsSubmitted(false);
-        setIsEditing(false);
-        setEditId(null);
     };
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setSelectedFile(e.target.files[0]);
-        }
-    };
-
-    const handleSaveTenant = async (isEdit: boolean) => {
+    const handleAddTenant = () => {
         if (!firstName || !lastName || !phoneNumber || !unit) {
-            addNotification("Please fill in required fields (Name, Phone, Unit)", 'error');
+            alert("Please fill in required fields (Name, Phone, Unit)");
             return;
         }
-
-        setIsProcessing(true);
 
         const selectedUnitObj = availableUnits.find(u => u.name === unit);
         const selectedPropObj = properties.find(p => p.name === property);
 
-        const tenantData: any = {
-            id: isEdit && editId ? editId : Date.now(),
+        addTenant({
+            id: Date.now(),
             name: `${firstName} ${lastName}`,
-            firstName,
-            lastName,
             email: email || 'N/A',
             phone: `${countryCode}${phoneNumber}`,
             propertyId: selectedPropObj?.id || 0,
@@ -147,6 +127,9 @@ const TenantFormView: React.FC<TenantFormViewProps> = ({ setCurrentView }) => {
             status: 'Active',
             avatarUrl: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
             balance: 0,
+            // Extended fields
+            firstName,
+            lastName,
             depositType,
             depositPaid: parseFloat(depositPaid) || 0,
             depositReturned: parseFloat(depositReturned) || 0,
@@ -161,34 +144,29 @@ const TenantFormView: React.FC<TenantFormViewProps> = ({ setCurrentView }) => {
             otherPhones,
             nextOfKin,
             bankPayers
-        };
+        });
 
-        let savedTenant;
-        if (isEdit) {
-            savedTenant = await updateTenant(tenantData);
-            if(savedTenant) addNotification('Tenant Updated Successfully', 'success');
-        } else {
-            savedTenant = await addTenant(tenantData);
-            if(savedTenant) addNotification('Tenant Added Successfully', 'success');
-        }
-
-        // Handle File Upload if tenant saved successfully and file exists
-        if (savedTenant && selectedFile) {
-            addNotification('Uploading document...', 'info');
-            await uploadFile(selectedFile, 'tenant_documents', { tenant_id: savedTenant.id });
-        }
-
-        setIsProcessing(false);
         setIsSubmitted(true);
+        setShowSuccessModal(true);
+        setTimeout(() => {
+            setShowSuccessModal(false);
+        }, 3000);
     };
 
     const handleAddAnother = () => {
         setFirstName('');
         setLastName('');
         setPhoneNumber('');
-        setSelectedFile(null);
+        // Keep property selected
         setIsSubmitted(false);
     };
+
+    const handleUpdateTenant = () => {
+        setShowSuccessModal(true);
+        setTimeout(() => {
+            setShowSuccessModal(false);
+        }, 3000);
+    }
 
     // Dynamic Field Handlers
     const addOtherPhone = () => setOtherPhones([...otherPhones, { name: '', phone: '' }]);
@@ -200,31 +178,25 @@ const TenantFormView: React.FC<TenantFormViewProps> = ({ setCurrentView }) => {
     };
     const addBankPayer = () => setBankPayers([...bankPayers, '']);
 
-    // --- Empty State Check ---
-    if (units.length === 0) {
-        return (
-            <div className="w-full max-w-3xl mx-auto mt-20 text-center animate-fadeIn">
-                <div className="bg-white border border-gray-200 rounded-lg p-10 shadow-sm">
-                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#1a237e]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                        </svg>
-                    </div>
-                    <h2 className="text-xl font-bold text-gray-800 mb-2">No Units Available</h2>
-                    <p className="text-gray-500 mb-6">You need to add units before you can register tenants.</p>
-                    <button 
-                        onClick={() => setCurrentView('UnitForm')}
-                        className="bg-[#1a237e] text-white px-6 py-2.5 rounded font-medium hover:bg-blue-900 transition-colors"
-                    >
-                        Add Units
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div className="animate-fadeIn w-full max-w-5xl mx-auto pb-20 relative px-4 md:px-0">
+            {/* Success Modal */}
+            {showSuccessModal && (
+                <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md animate-fadeIn">
+                    <div className="bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-200">
+                        <div className="bg-[#DCEDC8] px-6 py-3 flex items-center border-b border-[#C5E1A5]">
+                            <svg className="w-5 h-5 text-[#33691E] mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                            <h3 className="text-sm font-semibold text-[#33691E]">Success</h3>
+                        </div>
+                        <div className="p-8 text-center bg-white">
+                            <p className="text-[#1B5E20] text-lg font-medium">
+                                {isSubmitted ? 'Tenant Added Successfully' : 'Tenant Updated Successfully'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="mb-4">
                 <button 
                     onClick={() => setCurrentView('Getting Started')}
@@ -237,9 +209,9 @@ const TenantFormView: React.FC<TenantFormViewProps> = ({ setCurrentView }) => {
                 </button>
             </div>
 
-            <h2 className="text-2xl font-normal text-gray-700 mb-6">{isEditing ? 'Edit Tenant' : 'Tenant Form'}</h2>
+            <h2 className="text-2xl font-normal text-gray-700 mb-6">Tenant Form</h2>
 
-            {showBanner && !isEditing && (
+            {showBanner && (
                 <div className="relative bg-white border border-gray-200 border-l-4 border-l-green-500 rounded-sm p-4 mb-8 shadow-sm flex items-center justify-between">
                     <p className="text-gray-500 text-sm">Add a Tenant in order to complete On boarding.</p>
                     <button onClick={() => setShowBanner(false)} className="text-gray-300 hover:text-gray-500 font-bold">×</button>
@@ -251,8 +223,7 @@ const TenantFormView: React.FC<TenantFormViewProps> = ({ setCurrentView }) => {
                     <select 
                         value={property}
                         onChange={(e) => setProperty(e.target.value)}
-                        disabled={isEditing}
-                        className={`w-full border-gray-200 rounded-sm shadow-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm p-2 bg-gray-50 border ${isEditing ? 'opacity-70 cursor-not-allowed' : ''}`}
+                        className="w-full border-gray-200 rounded-sm shadow-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm p-2 bg-gray-50 border"
                     >
                         {properties.map(prop => (
                             <option key={prop.id} value={prop.name}>{prop.name}</option>
@@ -260,16 +231,16 @@ const TenantFormView: React.FC<TenantFormViewProps> = ({ setCurrentView }) => {
                     </select>
                 </FormRow>
 
-                <FormRow label="Select Unit" subLabel={availableUnits.length === 0 ? "No vacant units found in this property. Go to Units page to add more." : ""}>
+                <FormRow label="Select Unit" subLabel={availableUnits.length === 0 ? "If the unit is not available in the list, please go to the units page to add it." : ""}>
                     <select 
                         value={unit}
                         onChange={(e) => setUnit(e.target.value)}
                         className="w-full border-gray-200 rounded-sm shadow-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm p-2 bg-gray-50 border"
-                        disabled={!property || availableUnits.length === 0}
+                        disabled={!property}
                     >
                         <option value="">Select Unit</option>
                         {availableUnits.map(u => (
-                            <option key={u.id} value={u.name}>{u.name} - {u.rentAmount.toLocaleString()}</option>
+                            <option key={u.id} value={u.name}>{u.name} - {u.rentAmount}</option>
                         ))}
                     </select>
                 </FormRow>
@@ -541,17 +512,10 @@ const TenantFormView: React.FC<TenantFormViewProps> = ({ setCurrentView }) => {
                         <FormRow label="File upload (optional)">
                             <div className="flex items-center gap-3">
                                 <label className="cursor-pointer bg-white border border-[#1a237e] text-[#1a237e] text-sm font-medium py-1.5 px-4 rounded hover:bg-blue-50 transition-colors">
-                                    {selectedFile ? 'Change File' : 'Choose file'}
-                                    <input 
-                                        type="file" 
-                                        className="hidden" 
-                                        onChange={handleFileSelect}
-                                        accept=".pdf,.doc,.docx,.jpg,.png"
-                                    />
+                                    Choose file
+                                    <input type="file" className="hidden" />
                                 </label>
-                                <span className="text-sm text-gray-400">
-                                    {selectedFile ? selectedFile.name : 'No file chosen'}
-                                </span>
+                                <span className="text-sm text-gray-400">No file chosen</span>
                             </div>
                             <p className="text-xs text-gray-500 mt-2">File can be lease agreement, or any other tenant document</p>
                         </FormRow>
@@ -563,40 +527,29 @@ const TenantFormView: React.FC<TenantFormViewProps> = ({ setCurrentView }) => {
                     {!isSubmitted ? (
                         <>
                             <button 
-                                onClick={() => handleSaveTenant(isEditing)}
-                                disabled={isProcessing || availableUnits.length === 0}
-                                className={`w-full bg-[#5c54a0] hover:bg-blue-900 text-white font-medium py-2.5 rounded-sm shadow-sm transition-colors flex justify-center items-center ${isProcessing || availableUnits.length === 0 ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                onClick={handleAddTenant}
+                                className="w-full bg-[#5c54a0] hover:bg-[#4a438a] text-white font-medium py-2.5 rounded-sm shadow-sm transition-colors flex justify-center items-center"
                             >
-                                {isProcessing ? (
-                                    <span>Processing...</span>
-                                ) : (
-                                    <>
-                                        {isEditing ? (
-                                            <>
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                                </svg>
-                                                Update Tenant
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span className="mr-1">+</span> Add Tenant
-                                            </>
-                                        )}
-                                    </>
-                                )}
+                                <span className="mr-1">+</span> Add Tenant
                             </button>
-                            {!isEditing && (
-                                <button 
-                                    onClick={handleClear}
-                                    className="w-full bg-white border border-[#1a237e] text-[#1a237e] font-medium py-2.5 rounded-sm shadow-sm hover:bg-gray-50 transition-colors"
-                                >
-                                    Clear
-                                </button>
-                            )}
+                            <button 
+                                onClick={handleClear}
+                                className="w-full bg-white border border-[#1a237e] text-[#1a237e] font-medium py-2.5 rounded-sm shadow-sm hover:bg-gray-50 transition-colors"
+                            >
+                                Clear
+                            </button>
                         </>
                     ) : (
                         <>
+                            <button 
+                                onClick={handleUpdateTenant}
+                                className="w-full bg-[#000080] hover:bg-blue-900 text-white font-medium py-2.5 rounded-sm shadow-sm transition-colors flex justify-center items-center"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Update Tenant
+                            </button>
                             <button 
                                 onClick={handleAddAnother}
                                 className="w-full bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[#1a237e] font-medium py-2.5 rounded-sm shadow-sm transition-colors flex justify-center items-center"

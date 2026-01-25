@@ -16,13 +16,14 @@ interface BackupLog {
 }
 
 const BackupSettingsView: React.FC<BackupSettingsViewProps> = ({ setCurrentView }) => {
-    const { properties, tenants, units, invoices, payments, expenses } = useData();
+    const { properties } = useData();
     const [selectedProperty, setSelectedProperty] = useState('All Properties');
     const [isGenerating, setIsGenerating] = useState(false);
     
-    // Simulated backup history (this would ideally come from backend logs)
+    // Simulated backup history
     const [backupHistory, setBackupHistory] = useState<BackupLog[]>([
         { id: 1, date: '2025-10-20 14:30', property: 'All Properties', size: '2.4 MB', status: 'Completed' },
+        { id: 2, date: '2025-09-20 09:15', property: 'All Properties', size: '2.1 MB', status: 'Completed' },
     ]);
 
     const settingsMenu: { label: string; view: View }[] = [
@@ -41,43 +42,26 @@ const BackupSettingsView: React.FC<BackupSettingsViewProps> = ({ setCurrentView 
     const handleGenerateBackup = () => {
         setIsGenerating(true);
         
-        // Use timeout to allow UI to render 'Generating...' state
+        // Simulate network delay / processing time
         setTimeout(() => {
             const date = new Date();
             const timestamp = date.toISOString().replace(/[:.]/g, '-');
             const safePropertyName = selectedProperty.replace(/[^a-z0-9]/gi, '_').toLowerCase();
             const filename = `backup-${safePropertyName}-${timestamp}.json`;
             
-            // Collect real data from context
-            let backupData: any = {
+            // Create dummy content for the backup file
+            const backupData = {
                 meta: {
                     generatedAt: date.toISOString(),
                     scope: selectedProperty,
                     version: "1.0"
                 },
-                properties: properties,
-                units: units,
-                tenants: tenants,
-                invoices: invoices,
-                payments: payments,
-                expenses: expenses
+                data: "This is a simulated backup file containing tenant records, payment history, and property details."
             };
 
-            // Filter if specific property selected
-            if (selectedProperty !== 'All Properties') {
-                backupData.properties = properties.filter(p => p.name === selectedProperty);
-                backupData.units = units.filter(u => u.propertyName === selectedProperty);
-                backupData.tenants = tenants.filter(t => t.property === selectedProperty);
-                backupData.invoices = invoices.filter(i => i.property === selectedProperty);
-                backupData.payments = payments.filter(p => p.propertyName === selectedProperty);
-                backupData.expenses = expenses.filter(e => e.property === selectedProperty);
-            }
-
-            const jsonStr = JSON.stringify(backupData, null, 2);
-            const blob = new Blob([jsonStr], { type: 'application/json' });
+            // Trigger file download
+            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
-            
-            // Trigger download
             const link = document.createElement('a');
             link.href = url;
             link.download = filename;
@@ -86,19 +70,18 @@ const BackupSettingsView: React.FC<BackupSettingsViewProps> = ({ setCurrentView 
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
 
-            // Update local history log
-            const sizeKB = (blob.size / 1024).toFixed(2);
+            // Update history
             const newLog: BackupLog = {
                 id: Date.now(),
                 date: date.toLocaleString(),
                 property: selectedProperty,
-                size: `${sizeKB} KB`,
+                size: `${(blob.size / 1024).toFixed(2)} KB`,
                 status: 'Completed'
             };
             
             setBackupHistory([newLog, ...backupHistory]);
             setIsGenerating(false);
-        }, 1000);
+        }, 2000);
     };
 
     return (
@@ -130,7 +113,7 @@ const BackupSettingsView: React.FC<BackupSettingsViewProps> = ({ setCurrentView 
                         <div className="p-6 border-b border-gray-200">
                             <h2 className="text-lg font-medium text-gray-800">Back up your data</h2>
                             <p className="text-gray-500 text-sm mt-1">
-                                Generate a downloadable JSON file containing your current system data.
+                                Generate a downloadable file of tenant, units, payments, invoices, and utilities data.
                             </p>
                         </div>
                         
@@ -176,7 +159,7 @@ const BackupSettingsView: React.FC<BackupSettingsViewProps> = ({ setCurrentView 
                     {/* Recent Backups Table */}
                     <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
                         <div className="p-4 border-b border-gray-200">
-                            <h3 className="font-medium text-gray-800">Recent Backups (Session)</h3>
+                            <h3 className="font-medium text-gray-800">Recent Backups</h3>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="min-w-full text-sm text-left">
@@ -186,6 +169,7 @@ const BackupSettingsView: React.FC<BackupSettingsViewProps> = ({ setCurrentView 
                                         <th className="px-6 py-3">Scope</th>
                                         <th className="px-6 py-3">Size</th>
                                         <th className="px-6 py-3">Status</th>
+                                        <th className="px-6 py-3 text-right">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
@@ -199,12 +183,17 @@ const BackupSettingsView: React.FC<BackupSettingsViewProps> = ({ setCurrentView 
                                                     {log.status}
                                                 </span>
                                             </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                <button className="text-blue-600 hover:text-blue-900 text-xs font-medium">
+                                                    Download Again
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))}
                                     {backupHistory.length === 0 && (
                                         <tr>
-                                            <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
-                                                No backups generated in this session.
+                                            <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                                                No backups generated yet.
                                             </td>
                                         </tr>
                                     )}

@@ -2,20 +2,13 @@
 import React, { useState } from 'react';
 import { Payment } from '../../types';
 import Badge from '../../components/shared/Badge';
-import { useData } from '../../contexts/DataContext';
 
 interface PaymentsTableProps {
     payments: Payment[];
 }
 
 const PaymentsTable: React.FC<PaymentsTableProps> = ({ payments }) => {
-    const { deletePayment } = useData();
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
-    const [activeDropdownId, setActiveDropdownId] = useState<number | null>(null);
-
-    const toggleDropdown = (id: number) => {
-        setActiveDropdownId(activeDropdownId === id ? null : id);
-    };
 
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.checked) {
@@ -35,15 +28,8 @@ const PaymentsTable: React.FC<PaymentsTableProps> = ({ payments }) => {
 
     const handleSendReceipts = () => {
         if (selectedIds.length === 0) return;
-        alert(`Sending ${selectedIds.length} receipt(s)...`);
+        alert(`Sending ${selectedIds.length} receipts...`);
         setSelectedIds([]);
-    };
-
-    const handleDelete = (id: number) => {
-        if (confirm("Are you sure you want to delete this payment record?")) {
-            deletePayment(id);
-            setActiveDropdownId(null);
-        }
     };
 
     return (
@@ -82,7 +68,7 @@ const PaymentsTable: React.FC<PaymentsTableProps> = ({ payments }) => {
                     </div>
                 </div>
 
-                <div className="overflow-x-auto min-h-[300px]">
+                <div className="overflow-x-auto">
                      <table className="min-w-full text-sm text-left">
                         <thead className="text-gray-500 font-medium border-b border-gray-100">
                             <tr>
@@ -115,7 +101,7 @@ const PaymentsTable: React.FC<PaymentsTableProps> = ({ payments }) => {
                                 </tr>
                             ) : (
                                 payments.map(payment => (
-                                    <tr key={payment.id} className="hover:bg-gray-50 relative">
+                                    <tr key={payment.id} className="hover:bg-gray-50">
                                         <td className="p-3">
                                             <input 
                                                 type="checkbox" 
@@ -135,29 +121,10 @@ const PaymentsTable: React.FC<PaymentsTableProps> = ({ payments }) => {
                                             </Badge>
                                         </td>
                                         <td className="p-3 font-medium text-right text-gray-800">{payment.amount.toLocaleString()}</td>
-                                        <td className="p-3 text-center relative">
-                                            <button 
-                                                onClick={() => toggleDropdown(payment.id)}
-                                                className="text-gray-400 hover:text-blue-800"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                                                </svg>
+                                        <td className="p-3 text-center">
+                                            <button className="text-gray-400 hover:text-blue-800">
+                                                ...
                                             </button>
-
-                                            {activeDropdownId === payment.id && (
-                                                <>
-                                                    <div className="fixed inset-0 z-10" onClick={() => setActiveDropdownId(null)}></div>
-                                                    <div className="absolute right-0 top-8 w-32 bg-white border border-gray-200 rounded shadow-xl z-20 overflow-hidden">
-                                                        <button 
-                                                            onClick={() => handleDelete(payment.id)}
-                                                            className="block w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50"
-                                                        >
-                                                            Delete
-                                                        </button>
-                                                    </div>
-                                                </>
-                                            )}
                                         </td>
                                     </tr>
                                 ))

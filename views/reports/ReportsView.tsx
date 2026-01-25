@@ -64,13 +64,8 @@ const ReportsView: React.FC = () => {
             return;
         }
 
-        // Handle potential null/undefined values during CSV generation
         const headers = Object.keys(data[0]).join(',');
-        const rows = data.map(obj => Object.values(obj).map(val => {
-            if (val === null || val === undefined) return '""';
-            return `"${String(val).replace(/"/g, '""')}"`;
-        }).join(',')).join('\n');
-        
+        const rows = data.map(obj => Object.values(obj).map(val => `"${val}"`).join(',')).join('\n');
         const csvContent = `${headers}\n${rows}`;
         
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

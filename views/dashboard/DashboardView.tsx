@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import Onboarding from './Onboarding';
 import StatCard from './StatCard';
 import PaymentsInvoicesCard from './PaymentsInvoicesCard';
@@ -9,7 +9,6 @@ import MoreActions from './MoreActions';
 import BalanceCard from './BalanceCard';
 import RevenueChart from './RevenueChart';
 import RecentPaymentsTable from '../../components/dashboard/RecentPaymentsTable';
-import RecentActivityFeed from '../../components/dashboard/RecentActivityFeed';
 import { View } from '../../types';
 import { useData } from '../../contexts/DataContext';
 
@@ -18,7 +17,14 @@ interface DashboardViewProps {
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ setCurrentView }) => {
-    const { dashboardStats, billing } = useData();
+    const { tenants, payments } = useData();
+
+    // Calculate real stats
+    const totalArrears = tenants.reduce((sum, t) => sum + (t.balance && t.balance > 0 ? t.balance : 0), 0);
+    const tenantsWithArrears = tenants.filter(t => (t.balance || 0) > 0).length;
+    
+    const totalAdvance = tenants.reduce((sum, t) => sum + (t.balance && t.balance < 0 ? Math.abs(t.balance) : 0), 0);
+    const tenantsWithAdvance = tenants.filter(t => (t.balance || 0) < 0).length;
 
     // Helper to safely call setCurrentView
     const handleNavigate = (view: View) => {
@@ -34,16 +40,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({ setCurrentView }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <StatCard 
                     title="Tenant Arrears (KES)"
-                    value={dashboardStats.totalArrears.toLocaleString()}
-                    subtext={`${dashboardStats.tenantsArrearsCount} tenants with arrears`}
+                    value={totalArrears.toLocaleString()}
+                    subtext={`${tenantsWithArrears} tenants with arrears`}
                     onViewDetails={() => handleNavigate('Tenants')}
                     onSendReminders={() => handleNavigate('Communication')}
                     onViewInsights={() => handleNavigate('Insights (beta)')}
                 />
                 <StatCard
                     title="Tenant Advance Payments (KES)"
-                    value={dashboardStats.totalAdvance.toLocaleString()}
-                    subtext={`${dashboardStats.tenantsAdvanceCount} tenants with advance payments`}
+                    value={totalAdvance.toLocaleString()}
+                    subtext={`${tenantsWithAdvance} tenants with advance payments`}
                     onViewDetails={() => handleNavigate('Tenants')}
                     onSendReminders={() => handleNavigate('Communication')}
                     onViewInsights={() => handleNavigate('Insights (beta)')}
@@ -71,23 +77,22 @@ const DashboardView: React.FC<DashboardViewProps> = ({ setCurrentView }) => {
                 </div>
             </div>
 
-            {/* Monitoring Section: Recent Payments & Activity Feed */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* New Recent Payments Section */}
+            <div className="grid grid-cols-1 gap-6">
                 <RecentPaymentsTable />
-                <RecentActivityFeed />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <BalanceCard 
                     title="Subscription Balance"
-                    balance={`${billing.subscription_due} KES`}
-                    expiry={billing.subscription_expiry || "N/A"}
+                    balance="0.00 KES"
+                    expiry="23/10/2025"
                     buttonText="Pay Subscription"
                     onAction={() => handleNavigate('Billing')}
                 />
                  <BalanceCard 
                     title="SMS Balance"
-                    balance={`${billing.sms_balance} KES`}
+                    balance="0.00 KES"
                     lastPurchase="N/A"
                     buttonText="Buy SMS"
                     onAction={() => handleNavigate('Billing')}
