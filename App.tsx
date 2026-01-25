@@ -65,6 +65,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ currentView, setCurrentView, onLo
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false);
 
+    // Show loading screen only during initial data fetch
     if (isLoading) {
         return <LoadingScreen />;
     }
@@ -73,6 +74,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ currentView, setCurrentView, onLo
     const closeMobileSidebar = () => setIsMobileSidebarOpen(false);
     const toggleDesktopSidebar = () => setIsDesktopSidebarCollapsed(!isDesktopSidebarCollapsed);
 
+    // Standardized navigation handler
     const handleSetCurrentView = (view: View) => {
         setCurrentView(view);
         closeMobileSidebar();
@@ -80,88 +82,47 @@ const AppLayout: React.FC<AppLayoutProps> = ({ currentView, setCurrentView, onLo
 
     const renderView = () => {
         switch (currentView) {
-          case 'Dashboard':
-            return <DashboardView setCurrentView={handleSetCurrentView} />;
-          case 'Getting Started':
-            return <GettingStartedView setCurrentView={handleSetCurrentView} />;
-          case 'PropertyForm':
-            return <PropertyFormView setCurrentView={handleSetCurrentView} />;
-          case 'UnitForm':
-            return <UnitFormView setCurrentView={handleSetCurrentView} />;
-          case 'TenantForm':
-            return <TenantFormView setCurrentView={handleSetCurrentView} />;
-          case 'BulkTenantForm':
-            return <BulkTenantFormView setCurrentView={handleSetCurrentView} />;
-          case 'Invoices':
-            return <InvoicingView setCurrentView={handleSetCurrentView} />;
-          case 'InvoiceForm':
-            return <InvoiceFormView setCurrentView={handleSetCurrentView} />;
-          case 'Payments':
-            return <PaymentsView setCurrentView={handleSetCurrentView} />;
-          case 'PaymentForm':
-            return <PaymentFormView setCurrentView={handleSetCurrentView} />;
-          case 'BankStatementUpload':
-            return <BankStatementUploadView setCurrentView={handleSetCurrentView} />;
-          case 'Expenses':
-            return <ExpensesView setCurrentView={handleSetCurrentView} />;
-          case 'ExpenseForm':
-            return <ExpenseFormView setCurrentView={handleSetCurrentView} />;
-          case 'RecurringExpenseForm':
-            return <RecurringExpenseFormView setCurrentView={handleSetCurrentView} />;
-          case 'Tenants':
-            return <TenantsView setCurrentView={handleSetCurrentView} />;
-          case 'Properties':
-            return <PropertiesView setCurrentView={handleSetCurrentView} />;
-          case 'Units':
-            return <UnitsView setCurrentView={handleSetCurrentView} />;
-          case 'Utilities':
-            return <UtilitiesView setCurrentView={handleSetCurrentView} />;
-          case 'UtilityForm':
-            return <UtilityFormView setCurrentView={handleSetCurrentView} />;
-          case 'Maintenance':
-            return <MaintenanceView setCurrentView={handleSetCurrentView} />;
-          case 'MaintenanceForm':
-            return <MaintenanceFormView setCurrentView={handleSetCurrentView} />;
-          case 'Property Grouping':
-            return <PropertyGroupingView setCurrentView={handleSetCurrentView} />;
-          case 'PropertyGroupingForm':
-            return <PropertyGroupingFormView setCurrentView={handleSetCurrentView} />;
-          case 'Reports':
-            return <ReportsView />;
-          case 'Statements':
-            return <StatementsView />;
-          case 'Insights (beta)':
-            return <InsightsView setCurrentView={handleSetCurrentView} />;
-          case 'Communication':
-            return <CommunicationsView />;
-          case 'Settings':
-            return <SettingsView setCurrentView={handleSetCurrentView} />;
-          case 'General':
-            return <GeneralSettingsView setCurrentView={handleSetCurrentView} />;
-          case 'Backup':
-            return <BackupSettingsView setCurrentView={handleSetCurrentView} />;
-          case 'Alerts':
-            return <AlertsSettingsView setCurrentView={handleSetCurrentView} />;
-          case 'Account Info':
-            return <AccountInfoSettingsView setCurrentView={handleSetCurrentView} />;
-          case 'Documents (beta)':
-            return <DocumentsSettingsView setCurrentView={handleSetCurrentView} />;
-          case 'Custom Message Template':
-            return <CustomMessageTemplateSettingsView setCurrentView={handleSetCurrentView} />;
-          case 'Team':
-            return <TeamSettingsView setCurrentView={handleSetCurrentView} />;
-          case 'Billing':
-            return <BillingSettingsView setCurrentView={handleSetCurrentView} />;
-          case 'MPESA Transactions':
-            return <MpesaTransactionsSettingsView setCurrentView={handleSetCurrentView} />;
-          case 'Audit Trail':
-            return <AuditTrailSettingsView setCurrentView={handleSetCurrentView} />;
-          case 'User Feedback':
-            return <FeedbackSettingsView setCurrentView={handleSetCurrentView} />;
-          case 'System Status':
-            return <SystemStatusView setCurrentView={handleSetCurrentView} />;
-          case 'Foundation':
-            return <FoundationView />;
+          case 'Dashboard': return <DashboardView setCurrentView={handleSetCurrentView} />;
+          case 'Getting Started': return <GettingStartedView setCurrentView={handleSetCurrentView} />;
+          case 'PropertyForm': return <PropertyFormView setCurrentView={handleSetCurrentView} />;
+          case 'UnitForm': return <UnitFormView setCurrentView={handleSetCurrentView} />;
+          case 'TenantForm': return <TenantFormView setCurrentView={handleSetCurrentView} />;
+          case 'BulkTenantForm': return <BulkTenantFormView setCurrentView={handleSetCurrentView} />;
+          case 'Invoices': return <InvoicingView setCurrentView={handleSetCurrentView} />;
+          case 'InvoiceForm': return <InvoiceFormView setCurrentView={handleSetCurrentView} />;
+          case 'Payments': return <PaymentsView setCurrentView={handleSetCurrentView} />;
+          case 'PaymentForm': return <PaymentFormView setCurrentView={handleSetCurrentView} />;
+          case 'BankStatementUpload': return <BankStatementUploadView setCurrentView={handleSetCurrentView} />;
+          case 'Expenses': return <ExpensesView setCurrentView={handleSetCurrentView} />;
+          case 'ExpenseForm': return <ExpenseFormView setCurrentView={handleSetCurrentView} />;
+          case 'RecurringExpenseForm': return <RecurringExpenseFormView setCurrentView={handleSetCurrentView} />;
+          case 'Tenants': return <TenantsView setCurrentView={handleSetCurrentView} />;
+          case 'Properties': return <PropertiesView setCurrentView={handleSetCurrentView} />;
+          case 'Units': return <UnitsView setCurrentView={handleSetCurrentView} />;
+          case 'Utilities': return <UtilitiesView setCurrentView={handleSetCurrentView} />;
+          case 'UtilityForm': return <UtilityFormView setCurrentView={handleSetCurrentView} />;
+          case 'Maintenance': return <MaintenanceView setCurrentView={handleSetCurrentView} />;
+          case 'MaintenanceForm': return <MaintenanceFormView setCurrentView={handleSetCurrentView} />;
+          case 'Property Grouping': return <PropertyGroupingView setCurrentView={handleSetCurrentView} />;
+          case 'PropertyGroupingForm': return <PropertyGroupingFormView setCurrentView={handleSetCurrentView} />;
+          case 'Reports': return <ReportsView />;
+          case 'Statements': return <StatementsView />;
+          case 'Insights (beta)': return <InsightsView setCurrentView={handleSetCurrentView} />;
+          case 'Communication': return <CommunicationsView />;
+          case 'Settings': return <SettingsView setCurrentView={handleSetCurrentView} />;
+          case 'General': return <GeneralSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'Backup': return <BackupSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'Alerts': return <AlertsSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'Account Info': return <AccountInfoSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'Documents (beta)': return <DocumentsSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'Custom Message Template': return <CustomMessageTemplateSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'Team': return <TeamSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'Billing': return <BillingSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'MPESA Transactions': return <MpesaTransactionsSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'Audit Trail': return <AuditTrailSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'User Feedback': return <FeedbackSettingsView setCurrentView={handleSetCurrentView} />;
+          case 'System Status': return <SystemStatusView setCurrentView={handleSetCurrentView} />;
+          case 'Foundation': return <FoundationView />;
           case 'Financials':
           case 'Property/Unit':
             return <Placeholder title={currentView} />;
@@ -172,18 +133,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ currentView, setCurrentView, onLo
 
     return (
         <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
-            {/* Global Notifications */}
             <NotificationContainer />
-
-            {/* Mobile Overlay */}
             {isMobileSidebarOpen && (
               <div 
                 className="fixed inset-0 bg-black/50 z-20 md:hidden transition-opacity duration-300"
                 onClick={closeMobileSidebar}
               ></div>
             )}
-
-            {/* Sidebar Wrapper */}
             <div className={`
                 fixed inset-y-0 left-0 z-30 transition-all duration-300 transform 
                 ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
@@ -198,7 +154,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ currentView, setCurrentView, onLo
                     toggleCollapse={toggleDesktopSidebar}
                 />
             </div>
-
             <div className="flex-1 flex flex-col overflow-hidden w-full transition-all duration-300">
               <Header 
                 currentView={currentView} 
@@ -217,45 +172,20 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentView, setCurrentViewState] = useState<View>('Dashboard');
 
-  // --- 1. History Integration ---
-  
-  // Initialize view from URL hash on load
-  useEffect(() => {
-    const handleHashChange = () => {
-        const hash = window.location.hash.substring(1); // Remove '#'
-        if (hash) {
-            // Decode URI component to handle spaces (e.g. 'Audit%20Trail')
-            const decodedView = decodeURIComponent(hash) as View;
-            setCurrentViewState(decodedView);
-        } else if (isAuthenticated) {
-            // Default to Dashboard if authenticated but no hash
-            setCurrentViewState('Dashboard');
-            window.location.hash = 'Dashboard';
-        }
-    };
-
-    // Set initial view
-    handleHashChange();
-
-    // Listen for back/forward navigation
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [isAuthenticated]);
-
-  // Sync state changes to URL hash
-  const setCurrentView = (view: View) => {
-    setCurrentViewState(view);
-    window.location.hash = view;
-  };
-
-  // --- 2. Auth State ---
-
+  // Simple, robust auth check on mount
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
         setIsAuthenticated(true);
     }
   }, []);
+
+  // Direct State Navigation - No URL Hash dependency
+  const setCurrentView = (view: View) => {
+    setCurrentViewState(view);
+    // Optional: Update hash for bookmarking, but don't listen to it for control flow
+    // window.location.hash = view; 
+  };
 
   const handleLogin = () => {
     setIsAuthenticated(true);
@@ -267,8 +197,7 @@ const App: React.FC = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setIsAuthenticated(false);
-        setCurrentView('Dashboard'); 
-        window.location.hash = '';
+        setCurrentView('Dashboard');
     }
   };
 

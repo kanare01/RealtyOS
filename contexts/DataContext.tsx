@@ -232,18 +232,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             if (!response.ok) {
-                let errorMessage = response.statusText || 'Unknown Error';
-                try {
-                    const errorData = await response.json();
-                    errorMessage = errorData.message || errorData.error || errorData.description || errorMessage;
-                } catch (e) {
-                    console.error("Non-JSON error response received");
-                }
-                
-                // Don't show notifications for background data syncs to avoid spam
-                if (options.method !== 'GET') {
-                    addNotification(`${errorMessage}`, 'error');
-                }
+                // Return null on error, don't throw, to allow partial loading
                 return null;
             }
 
@@ -319,11 +308,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         } catch (error) {
             console.error("Failed to fetch data from backend", error);
-            // Don't show confusing error toast on initial load failures, just log it
-            // addNotification("Failed to load application data. Retrying...", "warning");
-        } finally {
-            // Force stop loading even if requests fail
-            setIsLoading(false);
+            // Non-blocking error
         }
     };
 
@@ -334,9 +319,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const token = localStorage.getItem('token');
             let role = '';
 
-            if (token) {
-                // 1. Verify Session & Get Role
-                try {
+            try {
+                if (token) {
                     // Try local first for immediate UI
                     const storedUser = localStorage.getItem('user');
                     if(storedUser) {
@@ -349,7 +333,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         }
                     }
 
-                    // Refresh profile from API to ensure valid token & role
+                    // Attempt API verify
                     const meRes = await fetch(`${API_BASE_URL}/auth/me`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
@@ -360,7 +344,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         localStorage.setItem('user', JSON.stringify(user));
                         role = user.role;
                         
-                        // 2. Fetch Data based on confirmed Role
                         await loadData(role);
                     } else if (meRes.status === 401) {
                         // Token expired or invalid
@@ -368,21 +351,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         localStorage.removeItem('token');
                         localStorage.removeItem('user');
                         setCurrentUser(null);
-                        // Do not reload page here to avoid infinite loops. App component will handle redirect to Login.
                     }
-                } catch (e) {
-                    console.error("Auth init connection error", e);
-                    // Fallback: If network error but we have local user, try loading data
-                    if (role) await loadData(role);
                 }
+            } catch (e) {
+                console.error("Auth init connection error", e);
+                // Even on error, if we have local user, assume offline mode and try to render
+                if (role) await loadData(role);
+            } finally {
+                // ALWAYS turn off loading, ensure UI renders
+                setIsLoading(false);
             }
-            setIsLoading(false);
         };
 
         init();
         
-        // Failsafe: Ensure loading state is turned off after 10 seconds max
-        const failsafe = setTimeout(() => setIsLoading(false), 10000);
+        // Absolute Failsafe: Ensure loading state is turned off after 5 seconds max
+        const failsafe = setTimeout(() => setIsLoading(false), 5000);
         return () => clearTimeout(failsafe);
     }, []);
 

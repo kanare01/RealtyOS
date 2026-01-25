@@ -20,23 +20,18 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
         try {
             const response = await fetch(`${API_BASE_URL}/auth/login`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
             });
 
             const data = await response.json();
 
             if (response.ok) {
-                // 1. Save Credentials
+                // Save session
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
                 
-                // 2. Force Hash Update for Router
-                window.location.hash = 'Dashboard';
-                
-                // 3. Trigger App State Update
+                // Call parent handler directly - App.tsx handles the rest
                 onLogin();
             } else {
                 setError(data.error || 'Login failed. Please check your credentials.');
@@ -45,7 +40,8 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             setError('Network error. Ensure the backend is running at ' + API_BASE_URL);
             console.error('Login error:', err);
         } finally {
-            setIsLoading(false);
+            // Only stop loading if we failed. If success, the component unmounts anyway.
+            if (error) setIsLoading(false);
         }
     };
 
@@ -62,9 +58,6 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
                 <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
                     Sign in to RealtyOS
                 </h2>
-                <p className="mt-2 text-center text-sm text-gray-600">
-                    Or <a href="#" className="font-medium text-[#1a237e] hover:text-blue-900">contact support</a> for access
-                </p>
                 <div className="mt-2 text-center">
                     <span className="text-xs text-gray-400">Demo Creds: admin@realtyos.com / admin123</span>
                 </div>
@@ -106,26 +99,6 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#1a237e] focus:border-[#1a237e] sm:text-sm"
                                 />
-                            </div>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                                <input
-                                    id="remember-me"
-                                    name="remember-me"
-                                    type="checkbox"
-                                    className="h-4 w-4 text-[#1a237e] focus:ring-[#1a237e] border-gray-300 rounded"
-                                />
-                                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                                    Remember me
-                                </label>
-                            </div>
-
-                            <div className="text-sm">
-                                <a href="#" className="font-medium text-[#1a237e] hover:text-blue-900">
-                                    Forgot your password?
-                                </a>
                             </div>
                         </div>
 
