@@ -13,7 +13,11 @@ const PaymentsView: React.FC<PaymentsViewProps> = ({ setCurrentView }) => {
     return (
         <div className="animate-fadeIn relative min-h-full">
             <div className="flex justify-end items-center mb-4 space-x-2">
-                <button className="px-4 py-2 text-sm font-medium text-white bg-[#1a237e] hover:bg-blue-900 rounded-md transition-colors shadow-sm">
+                <button 
+                    onClick={() => setCurrentView('PaymentForm')}
+                    className="px-4 py-2 text-sm font-medium text-white bg-[#1a237e] hover:bg-blue-900 rounded-md transition-colors shadow-sm"
+                    id="payments-view-record-btn"
+                >
                     Record Payment
                 </button>
                 <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-md transition-colors shadow-sm">

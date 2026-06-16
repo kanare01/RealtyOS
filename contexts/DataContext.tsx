@@ -1,37 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Property, Tenant, Unit, Expense, Invoice, Payment, RecurringExpense } from '../types';
-
-// Helper hook for LocalStorage
-function useLocalStorage<T>(key: string, initialValue: T) {
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    try {
-      if (typeof window === "undefined") {
-        return initialValue;
-      }
-      const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
-    } catch (error) {
-      console.error(error);
-      return initialValue;
-    }
-  });
-
-  const setValue = (value: T | ((val: T) => T)) => {
-    try {
-      const valueToStore =
-        value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  return [storedValue, setValue] as const;
-}
+import { Property, Tenant, Unit, Expense, Invoice, Payment, RecurringExpense, Maintenance } from '../types';
 
 interface DataContextType {
     properties: Property[];
@@ -41,102 +10,244 @@ interface DataContextType {
     recurringExpenses: RecurringExpense[];
     invoices: Invoice[];
     payments: Payment[];
-    lastCreatedUnits: Unit[]; // Store temporarily for bulk add flow
-    addProperty: (property: Property) => void;
-    addUnit: (unit: Unit) => void;
-    addUnits: (units: Unit[]) => void;
-    addTenant: (tenant: Tenant) => void;
-    addTenants: (tenants: Tenant[]) => void; // Bulk add
-    addExpense: (expense: Expense) => void;
-    addRecurringExpense: (expense: RecurringExpense) => void;
-    addInvoice: (invoice: Invoice) => void;
-    addPayment: (payment: Payment) => void;
+    maintenance: Maintenance[];
+    settings: any;
+    lastCreatedUnits: Unit[];
+    loading: boolean;
+    error: string | null;
+    addProperty: (property: Property) => Promise<void>;
+    addUnit: (unit: Unit) => Promise<void>;
+    addUnits: (units: Unit[]) => Promise<void>;
+    addTenant: (tenant: Tenant) => Promise<void>;
+    addTenants: (tenants: Tenant[]) => Promise<void>;
+    addExpense: (expense: Expense) => Promise<void>;
+    addRecurringExpense: (expense: RecurringExpense) => Promise<void>;
+    addInvoice: (invoice: Invoice) => Promise<void>;
+    addPayment: (payment: Payment) => Promise<void>;
+    addMaintenance: (maintenance: Maintenance) => Promise<void>;
+    updateSettings: (settings: any) => Promise<void>;
     getUnitsByProperty: (propertyName: string) => Unit[];
+    refreshData: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [properties, setProperties] = useLocalStorage<Property[]>('realtyos_properties', []);
-    const [tenants, setTenants] = useLocalStorage<Tenant[]>('realtyos_tenants', []);
-    const [units, setUnits] = useLocalStorage<Unit[]>('realtyos_units', []);
-    const [expenses, setExpenses] = useLocalStorage<Expense[]>('realtyos_expenses', []);
-    const [recurringExpenses, setRecurringExpenses] = useLocalStorage<RecurringExpense[]>('realtyos_recurring_expenses', []);
-    const [invoices, setInvoices] = useLocalStorage<Invoice[]>('realtyos_invoices', []);
-    const [payments, setPayments] = useLocalStorage<Payment[]>('realtyos_payments', []);
+    const [properties, setProperties] = useState<Property[]>([]);
+    const [tenants, setTenants] = useState<Tenant[]>([]);
+    const [units, setUnits] = useState<Unit[]>([]);
+    const [expenses, setExpenses] = useState<Expense[]>([]);
+    const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>([]);
+    const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [payments, setPayments] = useState<Payment[]>([]);
+    const [maintenance, setMaintenance] = useState<Maintenance[]>([]);
+    const [settings, setSettings] = useState<any>(null);
     const [lastCreatedUnits, setLastCreatedUnits] = useState<Unit[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // Sync unit occupancy when tenants change
-    useEffect(() => {
-        if (properties.length === 0) return;
-        
-        const updatedProperties = properties.map(prop => {
-            const propUnits = units.filter(u => u.propertyName === prop.name);
-            const totalUnits = propUnits.length;
-            const occupiedUnits = propUnits.filter(u => u.status === 'Occupied').length;
-            const occupancy = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
-            return { ...prop, units: totalUnits, occupancy };
-        });
-        
-        // Simple check to avoid infinite loop - only update if values changed
-        const currentString = JSON.stringify(properties);
-        const newString = JSON.stringify(updatedProperties);
-        if (currentString !== newString) {
-            setProperties(updatedProperties);
+    const refreshData = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch('/api/data');
+            if (!response.ok) throw new Error('Failed to fetch data');
+            const data = await response.json();
+            setProperties(data.properties);
+            setTenants(data.tenants);
+            setUnits(data.units);
+            setExpenses(data.expenses);
+            setRecurringExpenses(data.recurringExpenses);
+            setInvoices(data.invoices);
+            setPayments(data.payments);
+            setMaintenance(data.maintenance || []);
+            setSettings(data.settings);
+            setError(null);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An error occurred');
+        } finally {
+            setLoading(false);
         }
-    }, [units, tenants]);
-
-    const addProperty = (property: Property) => {
-        setProperties([...properties, property]);
     };
 
-    const addUnit = (unit: Unit) => {
-        setUnits((prev) => [...prev, unit]);
-        setLastCreatedUnits([unit]);
+    useEffect(() => {
+        refreshData();
+    }, []);
+
+    const handleApiResponse = async (response: Response, errorMessage: string) => {
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const apiError = errorData.error || `Server error (${response.status})`;
+            alert(`${errorMessage}: ${apiError}`);
+            throw new Error(apiError);
+        }
+        return response.json().catch(() => ({}));
     };
 
-    const addUnits = (newUnits: Unit[]) => {
-        setUnits((prev) => [...prev, ...newUnits]);
-        setLastCreatedUnits(newUnits);
+    const addProperty = async (property: Property) => {
+        try {
+            const response = await fetch('/api/properties', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(property),
+            });
+            await handleApiResponse(response, 'Failed to add property');
+            await refreshData();
+        } catch (err) {
+            console.error('addProperty error:', err);
+            throw err;
+        }
     };
 
-    const addTenant = (tenant: Tenant) => {
-        setTenants([...tenants, tenant]);
-        // Auto-occupy unit
-        setUnits(units.map(u => 
-            u.propertyName === tenant.property && u.name === tenant.unit 
-                ? { ...u, status: 'Occupied' } 
-                : u
-        ));
+    const addUnit = async (unit: Unit) => {
+        try {
+            const response = await fetch('/api/units', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(unit),
+            });
+            const created = await handleApiResponse(response, 'Failed to add unit');
+            setLastCreatedUnits(created);
+            await refreshData();
+        } catch (err) {
+            console.error('addUnit error:', err);
+            throw err;
+        }
     };
 
-    const addTenants = (newTenants: Tenant[]) => {
-        setTenants([...tenants, ...newTenants]);
-        
-        // Update occupancy for multiple units
-        const occupiedKeys = new Set(newTenants.map(t => `${t.property}_${t.unit}`));
-        
-        setUnits(units.map(u => 
-            occupiedKeys.has(`${u.propertyName}_${u.name}`)
-                ? { ...u, status: 'Occupied' } 
-                : u
-        ));
+    const addUnits = async (newUnits: Unit[]) => {
+        try {
+            const response = await fetch('/api/units', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newUnits),
+            });
+            const created = await handleApiResponse(response, 'Failed to add units');
+            setLastCreatedUnits(created);
+            await refreshData();
+        } catch (err) {
+            console.error('addUnits error:', err);
+            throw err;
+        }
     };
 
-    const addExpense = (expense: Expense) => {
-        setExpenses([...expenses, expense]);
+    const addTenant = async (tenant: Tenant) => {
+        try {
+            const response = await fetch('/api/tenants', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(tenant),
+            });
+            await handleApiResponse(response, 'Failed to add tenant');
+            await refreshData();
+        } catch (err) {
+            console.error('addTenant error:', err);
+            throw err;
+        }
     };
 
-    const addRecurringExpense = (expense: RecurringExpense) => {
-        setRecurringExpenses([...recurringExpenses, expense]);
+    const addTenants = async (newTenants: Tenant[]) => {
+        try {
+            const response = await fetch('/api/tenants', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newTenants),
+            });
+            await handleApiResponse(response, 'Failed to add bulk tenants');
+            await refreshData();
+        } catch (err) {
+            console.error('addTenants error:', err);
+            throw err;
+        }
     };
 
-    const addInvoice = (invoice: Invoice) => {
-        setInvoices([...invoices, invoice]);
+    const addExpense = async (expense: Expense) => {
+        try {
+            const response = await fetch('/api/expenses', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(expense),
+            });
+            await handleApiResponse(response, 'Failed to add expense');
+            await refreshData();
+        } catch (err) {
+            console.error('addExpense error:', err);
+            throw err;
+        }
     };
 
-    const addPayment = (payment: Payment) => {
-        setPayments([...payments, payment]);
+    const addRecurringExpense = async (expense: RecurringExpense) => {
+        try {
+            const response = await fetch('/api/recurring-expenses', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(expense),
+            });
+            await handleApiResponse(response, 'Failed to add recurring expense');
+            await refreshData();
+        } catch (err) {
+            console.error('addRecurringExpense error:', err);
+            throw err;
+        }
+    };
+
+    const addInvoice = async (invoice: Invoice) => {
+        try {
+            const response = await fetch('/api/invoices', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(invoice),
+            });
+            await handleApiResponse(response, 'Failed to add invoice');
+            await refreshData();
+        } catch (err) {
+            console.error('addInvoice error:', err);
+            throw err;
+        }
+    };
+
+    const addPayment = async (payment: Payment) => {
+        try {
+            const response = await fetch('/api/payments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payment),
+            });
+            await handleApiResponse(response, 'Failed to add payment');
+            await refreshData();
+        } catch (err) {
+            console.error('addPayment error:', err);
+            throw err;
+        }
+    };
+
+    const addMaintenance = async (m: Maintenance) => {
+        try {
+            const response = await fetch('/api/maintenance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(m),
+            });
+            await handleApiResponse(response, 'Failed to add maintenance');
+            await refreshData();
+        } catch (err) {
+            console.error('addMaintenance error:', err);
+            throw err;
+        }
+    };
+
+    const updateSettings = async (newSettings: any) => {
+        try {
+            const response = await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newSettings),
+            });
+            await handleApiResponse(response, 'Failed to update settings');
+            await refreshData();
+        } catch (err) {
+            console.error('updateSettings error:', err);
+            throw err;
+        }
     };
 
     const getUnitsByProperty = (propertyName: string) => {
@@ -152,7 +263,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             recurringExpenses,
             invoices,
             payments,
+            maintenance,
+            settings,
             lastCreatedUnits,
+            loading,
+            error,
             addProperty,
             addUnit,
             addUnits,
@@ -162,7 +277,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             addRecurringExpense,
             addInvoice,
             addPayment,
-            getUnitsByProperty
+            addMaintenance,
+            updateSettings,
+            getUnitsByProperty,
+            refreshData
         }}>
             {children}
         </DataContext.Provider>
@@ -176,3 +294,4 @@ export const useData = () => {
     }
     return context;
 };
+

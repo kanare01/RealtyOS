@@ -1,12 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View } from '../../types';
+import { useData } from '../../contexts/DataContext';
 
 interface GeneralSettingsViewProps {
     setCurrentView: (view: View) => void;
 }
 
 const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({ setCurrentView }) => {
+    const { settings, updateSettings, loading } = useData();
+    
     // State for form fields
     const [companyName, setCompanyName] = useState('');
     const [abbreviatedName, setAbbreviatedName] = useState('');
@@ -30,6 +33,14 @@ const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({ setCurrentVie
     const [commSms, setCommSms] = useState(true);
     const [commEmail, setCommEmail] = useState(false);
     const [accountType, setAccountType] = useState('Property Management');
+
+    useEffect(() => {
+        if (settings) {
+            setCompanyName(settings.general?.companyName || '');
+            setCurrency(settings.general?.currency || 'KES');
+            // Populate other fields as needed
+        }
+    }, [settings]);
 
     // UI State
     const [showSuccess, setShowSuccess] = useState(false);
@@ -60,14 +71,36 @@ const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({ setCurrentVie
         setReminders(prev => ({ ...prev, [date]: !prev[date] }));
     };
 
-    const handleUpdateSettings = () => {
-        // Here you would typically validate and send data to backend
-        console.log('Settings Updated:', {
-            companyName,
-            mpesaNumber,
+    const handleUpdateSettings = async () => {
+        const newSettings = {
+            general: {
+                companyName,
+                currency,
+                email: settings?.general?.email,
+                phone: settings?.general?.phone
+            },
+            mpesa: {
+                type: mpesaType,
+                number: mpesaNumber,
+                account: mpesaAccount,
+                validate: validatePayments
+            },
+            automation: {
+                autoRentInvoice,
+                autoOtherInvoice,
+                alertLandlord,
+                autoAck
+            },
             reminders,
+            leaseExpiryRange,
+            communication: {
+                sms: commSms,
+                email: commEmail
+            },
             accountType
-        });
+        };
+
+        await updateSettings(newSettings);
         
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 3000);
@@ -75,6 +108,12 @@ const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({ setCurrentVie
         // Scroll to top to see message
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
+
+    if (loading && !settings) {
+        return <div className="flex justify-center p-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-800"></div>
+        </div>;
+    }
 
     return (
         <div className="animate-fadeIn max-w-6xl mx-auto pb-20 relative">

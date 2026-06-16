@@ -32,7 +32,9 @@ export type View =
   | 'PropertyForm'
   | 'UnitForm'
   | 'TenantForm'
-  | 'BulkTenantForm';
+  | 'BulkTenantForm'
+  | 'InvoiceForm'
+  | 'PaymentForm';
 
 export interface RecurringBill {
   type: string;
@@ -152,6 +154,17 @@ export interface Invoice {
   item: string;
   amount: number;
   status: 'paid' | 'unpaid' | 'pending';
+}
+
+export interface Maintenance {
+  id: number;
+  summary: string;
+  propertyName: string;
+  unitName: string;
+  status: 'Open' | 'In Progress' | 'Resolved' | 'Closed';
+  category: string;
+  expense: number;
+  date: string;
 }
 
 export interface Payment {

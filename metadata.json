@@ -1,5 +1,8 @@
 {
-  "name": "RealtyOS Foundation",
-  "description": "A cloud-based internal platform for real estate management. This initial version visualizes the system architecture, data models, and foundational plans for the platform.",
-  "requestFramePermissions": []
+  "name": "RealtyOS",
+  "description": "A complete property management platform for real estate professionals. Manage properties, units, tenants, invoices, payments, and expenses in one place.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

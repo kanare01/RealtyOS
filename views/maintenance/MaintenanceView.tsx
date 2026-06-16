@@ -14,7 +14,10 @@ const MaintenanceView: React.FC<MaintenanceViewProps> = ({ setCurrentView }) => 
         <div className="animate-fadeIn relative min-h-full">
             {/* Top Actions */}
             <div className="flex justify-end items-center mb-6">
-                <button className="px-4 py-2 text-sm font-medium text-white bg-[#1a237e] hover:bg-blue-900 rounded-md transition-colors shadow-sm">
+                <button 
+                    onClick={() => setCurrentView('MaintenanceForm')}
+                    className="px-4 py-2 text-sm font-medium text-white bg-[#1a237e] hover:bg-blue-900 rounded-md transition-colors shadow-sm"
+                >
                     Add Maintenance
                 </button>
             </div>

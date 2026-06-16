@@ -44,14 +44,20 @@ const ExpensesView: React.FC<ExpensesViewProps> = ({ setCurrentView }) => {
                 
                 <div className="flex items-center space-x-2">
                     {activeTab === 'Expenses' ? (
-                        <button className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors flex items-center shadow-sm">
+                        <button 
+                            onClick={() => setCurrentView('ExpenseForm')}
+                            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors flex items-center shadow-sm"
+                        >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
                             Record Expense
                         </button>
                     ) : (
-                         <button className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors flex items-center shadow-sm">
+                         <button 
+                            onClick={() => setCurrentView('RecurringExpenseForm')}
+                            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors flex items-center shadow-sm"
+                        >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
